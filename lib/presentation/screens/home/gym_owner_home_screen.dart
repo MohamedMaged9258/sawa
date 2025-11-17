@@ -67,7 +67,10 @@ class _GymOwnerHomeScreenState extends State<GymOwnerHomeScreen> {
             onPressed: () {
               Provider.of<AuthProvider>(context, listen: false).logout();
               Navigator.pushNamedAndRemoveUntil(
-                  context, '/login', (route) => false);
+                context,
+                '/login',
+                (route) => false,
+              );
             },
             tooltip: 'Logout',
           ),
@@ -107,10 +110,7 @@ class GymOwnerDashboard extends StatelessWidget {
   });
 
   void _navigateToScreen(BuildContext context, Widget screen) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => screen),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
   }
 
   @override
@@ -124,9 +124,7 @@ class GymOwnerDashboard extends StatelessWidget {
           const SizedBox(height: 24),
           _buildStatisticsOverview(),
           const SizedBox(height: 24),
-          Expanded(
-            child: _buildDashboardGrid(context),
-          ),
+          Expanded(child: _buildDashboardGrid(context)),
         ],
       ),
     );
@@ -137,7 +135,9 @@ class GymOwnerDashboard extends StatelessWidget {
       builder: (context, authProvider, child) {
         return Card(
           elevation: 2,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           child: Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
@@ -161,7 +161,7 @@ class GymOwnerDashboard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Welcome Back, ${authProvider.userName ?? "Gym Owner"}!',
+                        'Welcome Back, ${authProvider.name ?? "Gym Owner"}!',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
@@ -171,10 +171,7 @@ class GymOwnerDashboard extends StatelessWidget {
                       const SizedBox(height: 4),
                       Text(
                         'Manage ${gyms.length} gyms and ${coaches.length} coaches',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Colors.grey[600],
-                        ),
+                        style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                       ),
                     ],
                   ),
@@ -191,21 +188,41 @@ class GymOwnerDashboard extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: _buildStatCard('Gyms', gyms.length.toString(), Icons.fitness_center, Colors.green),
+          child: _buildStatCard(
+            'Gyms',
+            gyms.length.toString(),
+            Icons.fitness_center,
+            Colors.green,
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildStatCard('Coaches', coaches.length.toString(), Icons.people, Colors.blue),
+          child: _buildStatCard(
+            'Coaches',
+            coaches.length.toString(),
+            Icons.people,
+            Colors.blue,
+          ),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildStatCard('Members', '128', Icons.people_alt, Colors.orange),
+          child: _buildStatCard(
+            'Members',
+            '128',
+            Icons.people_alt,
+            Colors.orange,
+          ),
         ),
       ],
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -225,17 +242,11 @@ class GymOwnerDashboard extends StatelessWidget {
             const SizedBox(height: 8),
             Text(
               value,
-              style: const TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
+              style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
             ),
             Text(
               title,
-              style: TextStyle(
-                fontSize: 12,
-                color: Colors.grey[600],
-              ),
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
             ),
           ],
         ),
@@ -249,10 +260,8 @@ class GymOwnerDashboard extends StatelessWidget {
         title: 'Add Gym',
         icon: Icons.add_business,
         color: Colors.green,
-        onTap: () => _navigateToScreen(
-          context,
-          AddGymScreen(onGymAdded: onGymAdded),
-        ),
+        onTap: () =>
+            _navigateToScreen(context, AddGymScreen(onGymAdded: onGymAdded)),
       ),
       DashboardItem(
         title: 'Coaches List',
