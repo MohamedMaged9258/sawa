@@ -1,8 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart';
-import '../auth/login_screen.dart';
-import '../home/member_home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -24,7 +22,7 @@ class _SplashScreenState extends State<SplashScreen> {
 
     // Check if user is logged in (in real app, check from shared preferences or provider)
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
-    
+
     if (mounted) {
       if (authProvider.currentUserRole != null) {
         // User is logged in, go to appropriate home screen

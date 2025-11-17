@@ -6,7 +6,7 @@ import '../../../presentation/widgets/custom_button.dart';
 import '../../../presentation/widgets/custom_textfield.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({Key? key}) : super(key: key);
+  const LoginScreen({super.key});
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
