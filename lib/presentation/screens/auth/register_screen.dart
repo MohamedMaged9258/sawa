@@ -13,33 +13,58 @@ class RegisterScreen extends StatefulWidget {
 
 class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _usernameController = TextEditingController();
+  final TextEditingController _nameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController = TextEditingController();
+  final TextEditingController _confirmPasswordController =
+      TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  
+
   String? _selectedRole;
 
   final List<Map<String, dynamic>> _userRoles = [
-    {'value': 'member', 'label': 'Customer', 'icon': Icons.person},
+    {'value': 'member', 'label': 'Member', 'icon': Icons.person},
     {'value': 'gymOwner', 'label': 'Gym Owner', 'icon': Icons.fitness_center},
-    {'value': 'restaurantOwner', 'label': 'Restaurant Owner', 'icon': Icons.restaurant},
-    {'value': 'nutritionist', 'label': 'Nutritionist', 'icon': Icons.medical_services},
+    {
+      'value': 'restaurantOwner',
+      'label': 'Restaurant Owner',
+      'icon': Icons.restaurant,
+    },
+    {
+      'value': 'nutritionist',
+      'label': 'Nutritionist',
+      'icon': Icons.medical_services,
+    },
   ];
 
   void _navigateToRoleScreen(String role, BuildContext context) {
     switch (role) {
       case 'member':
-        Navigator.pushNamedAndRemoveUntil(context, '/member-home', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/member-home',
+          (route) => false,
+        );
         break;
       case 'gymOwner':
-        Navigator.pushNamedAndRemoveUntil(context, '/gym-owner-home', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/gym-owner-home',
+          (route) => false,
+        );
         break;
       case 'restaurantOwner':
-        Navigator.pushNamedAndRemoveUntil(context, '/restaurant-owner-home', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/restaurant-owner-home',
+          (route) => false,
+        );
         break;
       case 'nutritionist':
-        Navigator.pushNamedAndRemoveUntil(context, '/nutritionist-home', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/nutritionist-home',
+          (route) => false,
+        );
         break;
       default:
         Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
@@ -49,11 +74,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Create Account'),
-      ),
+      appBar: AppBar(title: const Text('Create Account')),
       body: SafeArea(
-        child: SingleChildScrollView( // ADD THIS
+        child: SingleChildScrollView(
+          // ADD THIS
           padding: const EdgeInsets.all(16.0), // ADD THIS
           child: Form(
             key: _formKey,
@@ -65,7 +89,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
                 const SizedBox(height: 16),
-                
+
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -79,9 +103,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   itemBuilder: (context, index) {
                     final role = _userRoles[index];
                     final isSelected = _selectedRole == role['value'];
-                    
+
                     return Card(
-                      color: isSelected 
+                      color: isSelected
                           ? Theme.of(context).primaryColor.withOpacity(0.1)
                           : null,
                       elevation: isSelected ? 4 : 1,
@@ -98,8 +122,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             children: [
                               Icon(
                                 role['icon'],
-                                color: isSelected 
-                                    ? Theme.of(context).primaryColor 
+                                color: isSelected
+                                    ? Theme.of(context).primaryColor
                                     : Colors.grey,
                                 size: 32,
                               ),
@@ -108,9 +132,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 role['label'],
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
-                                  color: isSelected 
-                                      ? Theme.of(context).primaryColor 
+                                  fontWeight: isSelected
+                                      ? FontWeight.bold
+                                      : FontWeight.normal,
+                                  color: isSelected
+                                      ? Theme.of(context).primaryColor
                                       : Colors.black,
                                 ),
                               ),
@@ -121,15 +147,15 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     );
                   },
                 ),
-                
+
                 const SizedBox(height: 24),
                 CustomTextField(
-                  controller: _usernameController,
-                  labelText: 'Username',
+                  controller: _nameController,
+                  labelText: 'Name',
                   prefixIcon: Icons.person_outline,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
-                      return 'Please enter username';
+                      return 'Please Enter Name';
                     }
                     return null;
                   },
@@ -143,7 +169,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     if (value == null || value.isEmpty) {
                       return 'Please enter email';
                     }
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
+                    if (!RegExp(
+                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    ).hasMatch(value)) {
                       return 'Please enter a valid email';
                     }
                     return null;
@@ -185,25 +213,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Consumer<AuthProvider>(
                   builder: (context, authProvider, child) {
                     // Redirect after successful registration
-                    if (authProvider.currentUserRole != null && !authProvider.isLoading) {
+                    if (authProvider.currentUserRole != null &&
+                        !authProvider.isLoading) {
                       WidgetsBinding.instance.addPostFrameCallback((_) {
-                        _navigateToRoleScreen(authProvider.currentUserRole!, context);
+                        _navigateToRoleScreen(
+                          authProvider.currentUserRole!,
+                          context,
+                        );
                       });
                     }
 
                     return CustomButton(
                       text: 'Create Account',
                       isLoading: authProvider.isLoading,
-                      onPressed: _selectedRole == null ? null : () {
-                        if (_formKey.currentState!.validate()) {
-                          authProvider.register(
-                            email: _emailController.text.trim(),
-                            username: _usernameController.text.trim(),
-                            password: _passwordController.text.trim(),
-                            role: _selectedRole!,
-                          );
-                        }
-                      },
+                      onPressed: _selectedRole == null
+                          ? null
+                          : () {
+                              if (_formKey.currentState!.validate()) {
+                                authProvider.register(
+                                  email: _emailController.text.trim(),
+                                  name: _nameController.text.trim(),
+                                  password: _passwordController.text.trim(),
+                                  role: _selectedRole!,
+                                );
+                              }
+                            },
                     );
                   },
                 ),
@@ -232,7 +266,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   void dispose() {
     _emailController.dispose();
-    _usernameController.dispose();
+    _nameController.dispose();
     _passwordController.dispose();
     _confirmPasswordController.dispose();
     super.dispose();

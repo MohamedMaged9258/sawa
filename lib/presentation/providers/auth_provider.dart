@@ -63,7 +63,7 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> register({
     required String email,
-    required String username,
+    required String name,
     required String password,
     required String role,
   }) async {
@@ -76,7 +76,7 @@ class AuthProvider with ChangeNotifier {
 
       // Save user data to Firestore
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
-        'username': username,
+        'name': name,
         'email': email,
         'role': role,
         'createdAt': Timestamp.now(),
@@ -85,6 +85,21 @@ class AuthProvider with ChangeNotifier {
     } on FirebaseAuthException catch (e) {
       debugPrint("Firebase register error: ${e.message}");
       // Here you could set an error message to show in the UI
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> resetPassword(String email) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } on FirebaseAuthException catch (e) {
+      debugPrint("Firebase password reset error: ${e.message}");
+      rethrow; // Rethrow the exception to be caught in the UI
     }
 
     _isLoading = false;
