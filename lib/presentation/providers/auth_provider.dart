@@ -33,20 +33,25 @@ class AuthProvider with ChangeNotifier {
     if (user == null) {
       _currentUserRole = null;
     } else {
-      await _fetchUserRole(user.uid);
+      await _fetchUserData(user.uid);
     }
     notifyListeners();
   }
 
-  Future<void> _fetchUserRole(String uid) async {
+  Future<void> _fetchUserData(String uid) async {
     try {
       final doc = await _firestore.collection('users').doc(uid).get();
       if (doc.exists) {
-        _currentUserRole = doc.data()?['role'];
+        final data = doc.data();
+        _currentUserRole = data?['role'];
+        _name = data?['name'];
+        _email = data?['email'];
       }
     } catch (e) {
-      debugPrint("Error fetching user role: $e");
+      debugPrint("Error fetching user data: $e");
       _currentUserRole = null;
+      _name = null;
+      _email = null;
     }
   }
 
