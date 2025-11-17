@@ -1,61 +1,69 @@
-import 'package:flutter/foundation.dart';
+import 'dart:async';
+
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/foundation.dart';
 
 class AuthProvider with ChangeNotifier {
-  bool _isLoading = false;
-  String? _currentUserRole;
-  User? _currentUser;
-  String? _userName;
-  String? _userPhone;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  User? _user;
+  bool _isLoading = false;
+
+  String? _currentUserRole;
+  String? _name;
+  String? _email;
+  StreamSubscription<User?>? _authStateSubscription;
+
+  User? get user => _user;
   bool get isLoading => _isLoading;
   String? get currentUserRole => _currentUserRole;
-  User? get currentUser => _currentUser;
-  String? get userName => _userName;
-  String? get userPhone => _userPhone;
+  String? get name => _name;
+  String? get email => _email;
+
+  AuthProvider() {
+    _authStateSubscription = _auth.authStateChanges().listen(
+      _onAuthStateChanged,
+    );
+  }
+
+  Future<void> _onAuthStateChanged(User? user) async {
+    _user = user;
+    if (user == null) {
+      _currentUserRole = null;
+    } else {
+      await _fetchUserRole(user.uid);
+    }
+    notifyListeners();
+  }
+
+  Future<void> _fetchUserRole(String uid) async {
+    try {
+      final doc = await _firestore.collection('users').doc(uid).get();
+      if (doc.exists) {
+        _currentUserRole = doc.data()?['role'];
+      }
+    } catch (e) {
+      debugPrint("Error fetching user role: $e");
+      _currentUserRole = null;
+    }
+  }
 
   Future<void> login(String email, String password) async {
+    _isLoading = true;
+    notifyListeners();
+
     try {
-      _isLoading = true;
-      notifyListeners();
-
-      final UserCredential userCredential = 
-          await FirebaseAuth.instance.signInWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      _currentUser = userCredential.user;
-      
-      // Extract name from email or use display name
-      _userName = _currentUser?.displayName ?? 
-                  _currentUser?.email?.split('@').first ?? 
-                  'User';
-      _userPhone = _currentUser?.phoneNumber ?? '+1234567890';
-      
-      // For demo purposes, set role based on email
-      if (email.contains('gym')) {
-        _currentUserRole = 'gymOwner';
-      } else if (email.contains('restaurant')) {
-        _currentUserRole = 'restaurantOwner';
-      } else if (email.contains('nutrition')) {
-        _currentUserRole = 'nutritionist';
-      } else {
-        _currentUserRole = 'member';
-      }
-
-      _isLoading = false;
-      notifyListeners();
-
-    } on FirebaseAuthException {
-      _isLoading = false;
-      notifyListeners();
-      rethrow;
-    } catch (e) {
-      _isLoading = false;
-      notifyListeners();
-      rethrow;
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      // The authStateChanges listener will handle the rest
+    } on FirebaseAuthException catch (e) {
+      debugPrint("Firebase login error: ${e.message}");
+      // Here you could set an error message to show in the UI
     }
+
+    _isLoading = false;
+    notifyListeners();
   }
 
   Future<void> register({
@@ -64,86 +72,56 @@ class AuthProvider with ChangeNotifier {
     required String password,
     required String role,
   }) async {
-    try {
-      _isLoading = true;
-      notifyListeners();
-
-      final UserCredential userCredential = 
-          await FirebaseAuth.instance.createUserWithEmailAndPassword(
-        email: email,
-        password: password,
-      );
-
-      _currentUser = userCredential.user;
-      _currentUserRole = role;
-      _userName = name;
-
-      // Update user profile in Firebase
-      await _currentUser?.updateDisplayName(name);
-
-      _isLoading = false;
-      notifyListeners();
-
-    } on FirebaseAuthException {
-      _isLoading = false;
-      notifyListeners();
-      rethrow;
-    } catch (e) {
-      _isLoading = false;
-      notifyListeners();
-      rethrow;
-    }
-  }
-
-  Future<void> resetPassword(String email) async {
-    try {
-      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  Future<void> logout() async {
-    try {
-      await FirebaseAuth.instance.signOut();
-      _currentUser = null;
-      _currentUserRole = null;
-      _userName = null;
-      _userPhone = null;
-      notifyListeners();
-    } catch (e) {
-      rethrow;
-    }
-  }
-
-  // Check if user is already logged in
-  Future<void> checkAuthStatus() async {
     _isLoading = true;
     notifyListeners();
 
-    _currentUser = FirebaseAuth.instance.currentUser;
-    
-    if (_currentUser != null) {
-      // Get user data from Firebase
-      _userName = _currentUser?.displayName ?? 
-                  _currentUser?.email?.split('@').first ?? 
-                  'User';
-      
-      // In real app, you'd fetch user role from Firestore here
-      // For demo, using email-based logic
-      final email = _currentUser!.email ?? '';
-      if (email.contains('gym')) {
-        _currentUserRole = 'gymOwner';
-      } else if (email.contains('restaurant')) {
-        _currentUserRole = 'restaurantOwner';
-      } else if (email.contains('nutrition')) {
-        _currentUserRole = 'nutritionist';
-      } else {
-        _currentUserRole = 'member';
-      }
+    try {
+      UserCredential userCredential = await _auth
+          .createUserWithEmailAndPassword(email: email, password: password);
+
+      // Save user data to Firestore
+      await _firestore.collection('users').doc(userCredential.user!.uid).set({
+        'name': name,
+        'email': email,
+        'role': role,
+        'createdAt': Timestamp.now(),
+      });
+
+      _name = name;
+      _currentUserRole = role;
+      _email = email;
+      // The authStateChanges listener will handle the rest
+    } on FirebaseAuthException catch (e) {
+      debugPrint("Firebase register error: ${e.message}");
+      // Here you could set an error message to show in the UI
     }
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<void> resetPassword(String email) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } on FirebaseAuthException catch (e) {
+      debugPrint("Firebase password reset error: ${e.message}");
+      rethrow; // Rethrow the exception to be caught in the UI
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> logout() async {
+    await _auth.signOut();
+  }
+
+  @override
+  void dispose() {
+    _authStateSubscription?.cancel();
+    super.dispose();
   }
 }
