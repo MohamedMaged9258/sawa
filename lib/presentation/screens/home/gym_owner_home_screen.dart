@@ -1,6 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
+import 'package:sawa/presentation/screens/gym_owner/add_gym_screen.dart';
+import 'package:sawa/presentation/screens/gym_owner/coaches_list_screen.dart';
+import 'package:sawa/presentation/screens/gym_owner/gym_owner_profile_screen.dart';
+import 'package:sawa/presentation/screens/gym_owner/gym_details_screen.dart';
+import 'package:sawa/presentation/screens/gym_owner/gym_owner_settings_screen.dart';
+import 'package:sawa/presentation/screens/gym_owner/gym_statistics_screen.dart';
 
 class GymOwnerHomeScreen extends StatelessWidget {
   const GymOwnerHomeScreen({super.key});
@@ -31,6 +37,13 @@ class GymOwnerHomeScreen extends StatelessWidget {
 
 class GymOwnerDashboard extends StatelessWidget {
   const GymOwnerDashboard({super.key});
+
+  void _navigateToScreen(BuildContext context, Widget screen) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => screen),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -169,37 +182,37 @@ class GymOwnerDashboard extends StatelessWidget {
         title: 'Add Gym',
         icon: Icons.add_business,
         color: Colors.green,
-        onTap: () => _navigateToScreen(context, '/add-gym'),
+        onTap: () => _navigateToScreen(context, const AddGymScreen()),
       ),
       DashboardItem(
         title: 'Coaches List',
         icon: Icons.people_alt,
         color: Colors.blue,
-        onTap: () => _navigateToScreen(context, '/coaches-list'),
+        onTap: () => _navigateToScreen(context, const CoachesListScreen()),
       ),
       DashboardItem(
         title: 'My Profile',
         icon: Icons.person,
         color: Colors.purple,
-        onTap: () => _navigateToScreen(context, '/gym-owner-profile'),
+        onTap: () => _navigateToScreen(context, const GymOwnerProfileScreen()),
       ),
       DashboardItem(
         title: 'Gym Details',
         icon: Icons.business,
         color: Colors.orange,
-        onTap: () => _navigateToScreen(context, '/gym-details'),
+        onTap: () => _navigateToScreen(context, const GymDetailsScreen()),
       ),
       DashboardItem(
         title: 'Settings',
         icon: Icons.settings,
         color: Colors.grey,
-        onTap: () => _navigateToScreen(context, '/gym-owner-settings'),
+        onTap: () => _navigateToScreen(context, const GymOwnerSettingsScreen()),
       ),
       DashboardItem(
         title: 'Statistics',
         icon: Icons.analytics,
         color: Colors.red,
-        onTap: () => _navigateToScreen(context, '/gym-statistics'),
+        onTap: () => _navigateToScreen(context, const GymStatisticsScreen()),
       ),
     ];
 
@@ -250,16 +263,6 @@ class GymOwnerDashboard extends StatelessWidget {
             ],
           ),
         ),
-      ),
-    );
-  }
-
-  void _navigateToScreen(BuildContext context, String route) {
-    // For now, show a placeholder. You'll implement these screens next.
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text('Navigating to: $route'),
-        duration: const Duration(milliseconds: 500),
       ),
     );
   }
