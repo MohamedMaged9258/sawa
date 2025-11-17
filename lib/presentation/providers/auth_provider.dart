@@ -47,10 +47,10 @@ class AuthProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       _isLoading = false;
       notifyListeners();
-      throw e;
+      rethrow;
     } catch (e) {
       _isLoading = false;
       notifyListeners();
@@ -77,7 +77,6 @@ class AuthProvider with ChangeNotifier {
       _currentUser = userCredential.user;
       _currentUserRole = role;
       _userName = name;
-      _userPhone = '+1234567890'; // Default phone number
 
       // Update user profile in Firebase
       await _currentUser?.updateDisplayName(name);
@@ -85,27 +84,13 @@ class AuthProvider with ChangeNotifier {
       _isLoading = false;
       notifyListeners();
 
-    } on FirebaseAuthException catch (e) {
-      _isLoading = false;
-      notifyListeners();
-      throw e;
-    } catch (e) {
+    } on FirebaseAuthException {
       _isLoading = false;
       notifyListeners();
       rethrow;
-    }
-  }
-
-  Future<void> updateProfile(String name, String phone) async {
-    try {
-      _userName = name;
-      _userPhone = phone;
-      
-      // Update user profile in Firebase
-      await _currentUser?.updateDisplayName(name);
-      
-      notifyListeners();
     } catch (e) {
+      _isLoading = false;
+      notifyListeners();
       rethrow;
     }
   }
@@ -143,7 +128,6 @@ class AuthProvider with ChangeNotifier {
       _userName = _currentUser?.displayName ?? 
                   _currentUser?.email?.split('@').first ?? 
                   'User';
-      _userPhone = _currentUser?.phoneNumber ?? '+1234567890';
       
       // In real app, you'd fetch user role from Firestore here
       // For demo, using email-based logic
