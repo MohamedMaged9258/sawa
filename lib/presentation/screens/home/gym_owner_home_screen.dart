@@ -1,15 +1,56 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
+import 'package:sawa/presentation/models/gym_owner_models.dart';
+import 'package:sawa/presentation/providers/auth_provider.dart';
 import 'package:sawa/presentation/screens/gym_owner/add_gym_screen.dart';
 import 'package:sawa/presentation/screens/gym_owner/coaches_list_screen.dart';
-import 'package:sawa/presentation/screens/gym_owner/gym_owner_profile_screen.dart';
 import 'package:sawa/presentation/screens/gym_owner/gym_details_screen.dart';
-import 'package:sawa/presentation/screens/gym_owner/gym_owner_settings_screen.dart';
 import 'package:sawa/presentation/screens/gym_owner/gym_statistics_screen.dart';
 
-class GymOwnerHomeScreen extends StatelessWidget {
+class GymOwnerHomeScreen extends StatefulWidget {
   const GymOwnerHomeScreen({super.key});
+
+  @override
+  State<GymOwnerHomeScreen> createState() => _GymOwnerHomeScreenState();
+}
+
+class _GymOwnerHomeScreenState extends State<GymOwnerHomeScreen> {
+  final List<Gym> _gyms = [];
+  final List<Coach> _coaches = [];
+
+  void _addGym(Gym gym) {
+    setState(() {
+      _gyms.add(gym);
+    });
+  }
+
+  void _updateGym(Gym updatedGym) {
+    setState(() {
+      final index = _gyms.indexWhere((gym) => gym.id == updatedGym.id);
+      if (index != -1) {
+        _gyms[index] = updatedGym;
+      }
+    });
+  }
+
+  void _deleteGym(int index) {
+    setState(() {
+      _gyms.removeAt(index);
+    });
+  }
+
+  void _addCoach(Coach coach) {
+    setState(() {
+      _coaches.add(coach);
+    });
+  }
+
+  void _deleteCoach(int index) {
+    setState(() {
+      _coaches.removeAt(index);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +61,7 @@ class GymOwnerHomeScreen extends StatelessWidget {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
+          // Logout Icon only
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
@@ -27,16 +69,42 @@ class GymOwnerHomeScreen extends StatelessWidget {
               Navigator.pushNamedAndRemoveUntil(
                   context, '/login', (route) => false);
             },
+            tooltip: 'Logout',
           ),
         ],
       ),
-      body: const GymOwnerDashboard(),
+      body: GymOwnerDashboard(
+        gyms: _gyms,
+        coaches: _coaches,
+        onGymAdded: _addGym,
+        onGymUpdated: _updateGym,
+        onGymDeleted: _deleteGym,
+        onCoachAdded: _addCoach,
+        onCoachDeleted: _deleteCoach,
+      ),
     );
   }
 }
 
 class GymOwnerDashboard extends StatelessWidget {
-  const GymOwnerDashboard({super.key});
+  final List<Gym> gyms;
+  final List<Coach> coaches;
+  final Function(Gym) onGymAdded;
+  final Function(Gym) onGymUpdated;
+  final Function(int) onGymDeleted;
+  final Function(Coach) onCoachAdded;
+  final Function(int) onCoachDeleted;
+
+  const GymOwnerDashboard({
+    super.key,
+    required this.gyms,
+    required this.coaches,
+    required this.onGymAdded,
+    required this.onGymUpdated,
+    required this.onGymDeleted,
+    required this.onCoachAdded,
+    required this.onCoachDeleted,
+  });
 
   void _navigateToScreen(BuildContext context, Widget screen) {
     Navigator.push(
@@ -52,15 +120,10 @@ class GymOwnerDashboard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Welcome Section
           _buildWelcomeSection(),
           const SizedBox(height: 24),
-          
-          // Statistics Overview
           _buildStatisticsOverview(),
           const SizedBox(height: 24),
-          
-          // Main Actions Grid
           Expanded(
             child: _buildDashboardGrid(context),
           ),
@@ -70,53 +133,57 @@ class GymOwnerDashboard extends StatelessWidget {
   }
 
   Widget _buildWelcomeSection() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Row(
-          children: [
-            Container(
-              width: 60,
-              height: 60,
-              decoration: BoxDecoration(
-                color: Colors.green[100],
-                shape: BoxShape.circle,
-              ),
-              child: Icon(
-                Icons.fitness_center,
-                size: 32,
-                color: Colors.green[700],
-              ),
-            ),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Welcome Back!',
-                    style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.grey[800],
-                    ),
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        return Card(
+          elevation: 2,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Row(
+              children: [
+                Container(
+                  width: 60,
+                  height: 60,
+                  decoration: BoxDecoration(
+                    color: Colors.green[100],
+                    shape: BoxShape.circle,
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    'Manage your gym operations efficiently',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey[600],
-                    ),
+                  child: Icon(
+                    Icons.fitness_center,
+                    size: 32,
+                    color: Colors.green[700],
                   ),
-                ],
-              ),
+                ),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Welcome Back, ${authProvider.userName ?? "Gym Owner"}!',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.grey[800],
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        'Manage ${gyms.length} gyms and ${coaches.length} coaches',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey[600],
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
-      ),
+          ),
+        );
+      },
     );
   }
 
@@ -124,15 +191,15 @@ class GymOwnerDashboard extends StatelessWidget {
     return Row(
       children: [
         Expanded(
-          child: _buildStatCard('Members', '128', Icons.people, Colors.blue),
+          child: _buildStatCard('Gyms', gyms.length.toString(), Icons.fitness_center, Colors.green),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildStatCard('Coaches', '8', Icons.sports, Colors.orange),
+          child: _buildStatCard('Coaches', coaches.length.toString(), Icons.people, Colors.blue),
         ),
         const SizedBox(width: 12),
         Expanded(
-          child: _buildStatCard('Bookings', '24', Icons.book_online, Colors.green),
+          child: _buildStatCard('Members', '128', Icons.people_alt, Colors.orange),
         ),
       ],
     );
@@ -182,31 +249,36 @@ class GymOwnerDashboard extends StatelessWidget {
         title: 'Add Gym',
         icon: Icons.add_business,
         color: Colors.green,
-        onTap: () => _navigateToScreen(context, const AddGymScreen()),
+        onTap: () => _navigateToScreen(
+          context,
+          AddGymScreen(onGymAdded: onGymAdded),
+        ),
       ),
       DashboardItem(
         title: 'Coaches List',
         icon: Icons.people_alt,
         color: Colors.blue,
-        onTap: () => _navigateToScreen(context, const CoachesListScreen()),
-      ),
-      DashboardItem(
-        title: 'My Profile',
-        icon: Icons.person,
-        color: Colors.purple,
-        onTap: () => _navigateToScreen(context, const GymOwnerProfileScreen()),
+        onTap: () => _navigateToScreen(
+          context,
+          CoachesListScreen(
+            coaches: coaches,
+            onCoachAdded: onCoachAdded,
+            onCoachDeleted: onCoachDeleted,
+          ),
+        ),
       ),
       DashboardItem(
         title: 'Gym Details',
         icon: Icons.business,
         color: Colors.orange,
-        onTap: () => _navigateToScreen(context, const GymDetailsScreen()),
-      ),
-      DashboardItem(
-        title: 'Settings',
-        icon: Icons.settings,
-        color: Colors.grey,
-        onTap: () => _navigateToScreen(context, const GymOwnerSettingsScreen()),
+        onTap: () => _navigateToScreen(
+          context,
+          GymDetailsScreen(
+            gyms: gyms,
+            onGymUpdated: onGymUpdated,
+            onGymDeleted: onGymDeleted,
+          ),
+        ),
       ),
       DashboardItem(
         title: 'Statistics',

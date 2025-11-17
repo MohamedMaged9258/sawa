@@ -1,45 +1,62 @@
 import 'package:flutter/material.dart';
+import 'package:sawa/presentation/models/gym_owner_models.dart';
 
 class GymDetailsScreen extends StatefulWidget {
-  const GymDetailsScreen({super.key});
+  final List<Gym> gyms;
+  final Function(Gym) onGymUpdated;
+  final Function(int) onGymDeleted;
+
+  const GymDetailsScreen({
+    super.key,
+    required this.gyms,
+    required this.onGymUpdated,
+    required this.onGymDeleted,
+  });
 
   @override
   State<GymDetailsScreen> createState() => _GymDetailsScreenState();
 }
 
 class _GymDetailsScreenState extends State<GymDetailsScreen> {
-  final List<Gym> _gyms = [
-    Gym(
-      'Premium Fitness Center',
-      '123 Main Street, City Center',
-      49.99,
-      'assets/gym1.jpg',
-    ),
-    Gym(
-      'Elite Strength Gym',
-      '456 Fitness Avenue, Downtown',
-      69.99,
-      'assets/gym2.jpg',
-    ),
-    Gym(
-      'Community Workout Space',
-      '789 Health Road, Uptown',
-      39.99,
-      'assets/gym3.jpg',
-    ),
-  ];
-
   void _editGym(int index) {
-    print('Editing gym: ${_gyms[index].name}');
+    print('Editing gym: ${widget.gyms[index].name}');
     showDialog(
       context: context,
       builder: (context) => EditGymDialog(
-        gym: _gyms[index],
+        gym: widget.gyms[index],
         onGymUpdated: (updatedGym) {
-          setState(() {
-            _gyms[index] = updatedGym;
-          });
+          widget.onGymUpdated(updatedGym);
         },
+      ),
+    );
+  }
+
+  void _deleteGym(int index) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Gym'),
+        content: Text('Are you sure you want to delete ${widget.gyms[index].name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              widget.onGymDeleted(index);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Gym deleted successfully!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
       ),
     );
   }
@@ -52,7 +69,7 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
         backgroundColor: Colors.green[700],
         foregroundColor: Colors.white,
       ),
-      body: _gyms.isEmpty
+      body: widget.gyms.isEmpty
           ? const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -60,14 +77,16 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
                   Icon(Icons.fitness_center, size: 64, color: Colors.grey),
                   SizedBox(height: 16),
                   Text('No gyms added yet'),
+                  SizedBox(height: 8),
+                  Text('Tap "Add Gym" to get started', style: TextStyle(color: Colors.grey)),
                 ],
               ),
             )
           : ListView.builder(
               padding: const EdgeInsets.all(16.0),
-              itemCount: _gyms.length,
+              itemCount: widget.gyms.length,
               itemBuilder: (context, index) {
-                return _buildGymCard(_gyms[index], index);
+                return _buildGymCard(widget.gyms[index], index);
               },
             ),
     );
@@ -138,34 +157,48 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 8),
+                      Text(
+                        'Added: ${_formatDate(gym.createdAt)}',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey[500],
+                        ),
+                      ),
                     ],
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                icon: const Icon(Icons.edit),
-                label: const Text('Edit Gym Details'),
-                onPressed: () => _editGym(index),
-              ),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.edit),
+                    label: const Text('Edit'),
+                    onPressed: () => _editGym(index),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    label: const Text('Delete', style: TextStyle(color: Colors.red)),
+                    onPressed: () => _deleteGym(index),
+                  ),
+                ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
-}
 
-class Gym {
-  String name;
-  String location;
-  double pricePerMonth;
-  String photo;
-
-  Gym(this.name, this.location, this.pricePerMonth, this.photo);
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
 }
 
 class EditGymDialog extends StatefulWidget {
@@ -306,17 +339,18 @@ class _EditGymDialogState extends State<EditGymDialog> {
           onPressed: () {
             if (_formKey.currentState!.validate()) {
               final updatedGym = Gym(
-                _nameController.text,
-                _locationController.text,
-                double.parse(_priceController.text),
-                widget.gym.photo,
+                id: widget.gym.id,
+                name: _nameController.text,
+                location: _locationController.text,
+                pricePerMonth: double.parse(_priceController.text),
+                photo: widget.gym.photo,
+                createdAt: widget.gym.createdAt,
               );
               
               print('Updating Gym:');
-              print('Name: ${_nameController.text}');
-              print('Location: ${_locationController.text}');
-              print('Price: \$${_priceController.text} per month');
-              print('Photo: Updated gym photo');
+              print('Name: ${updatedGym.name}');
+              print('Location: ${updatedGym.location}');
+              print('Price: \$${updatedGym.pricePerMonth} per month');
               
               widget.onGymUpdated(updatedGym);
               Navigator.pop(context);

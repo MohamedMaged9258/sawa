@@ -1,7 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'package:geolocator/geolocator.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:sawa/presentation/models/gym_owner_models.dart';
 
 class AddGymScreen extends StatefulWidget {
-  const AddGymScreen({super.key});
+  final Function(Gym) onGymAdded;
+
+  const AddGymScreen({super.key, required this.onGymAdded});
 
   @override
   State<AddGymScreen> createState() => _AddGymScreenState();
@@ -12,6 +18,148 @@ class _AddGymScreenState extends State<AddGymScreen> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _locationController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
+  
+  XFile? _selectedImage;
+  double? _selectedLatitude;
+  double? _selectedLongitude;
+
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    try {
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        maxHeight: 600,
+        imageQuality: 80,
+      );
+      
+      if (image != null) {
+        setState(() {
+          _selectedImage = image;
+        });
+        print('Selected image: ${image.path}');
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to pick image'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _getCurrentLocation() async {
+    // Check location permission
+    var status = await Permission.location.status;
+    if (!status.isGranted) {
+      status = await Permission.location.request();
+    }
+    
+    if (status.isGranted) {
+      try {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Getting your location...')),
+        );
+
+        Position position = await Geolocator.getCurrentPosition(
+          desiredAccuracy: LocationAccuracy.high,
+        );
+
+        setState(() {
+          _selectedLatitude = position.latitude;
+          _selectedLongitude = position.longitude;
+          _locationController.text = '${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}';
+        });
+
+        print('Selected location: $_selectedLatitude, $_selectedLongitude');
+        
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Location selected successfully!'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } catch (e) {
+        print('Error getting location: $e');
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Failed to get location. Please enable location services.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Location permission is required to select your location.'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  Future<void> _openAddressInput() async {
+    final TextEditingController addressController = TextEditingController(
+      text: _locationController.text.contains(',') ? '' : _locationController.text
+    );
+
+    final result = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Enter Gym Address'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: addressController,
+              decoration: const InputDecoration(
+                hintText: 'Enter full address (street, city, country)',
+                border: OutlineInputBorder(),
+              ),
+              maxLines: 3,
+            ),
+            const SizedBox(height: 16),
+            TextButton.icon(
+              icon: const Icon(Icons.my_location),
+              label: const Text('Use current location'),
+              onPressed: () {
+                Navigator.pop(context, 'current_location');
+              },
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              if (addressController.text.trim().isNotEmpty) {
+                Navigator.pop(context, addressController.text.trim());
+              }
+            },
+            child: const Text('Use Address'),
+          ),
+        ],
+      ),
+    );
+
+    if (result != null) {
+      if (result == 'current_location') {
+        _getCurrentLocation();
+      } else {
+        setState(() {
+          _locationController.text = result;
+          _selectedLatitude = null;
+          _selectedLongitude = null;
+        });
+        print('Manual address entered: $result');
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,27 +203,8 @@ class _AddGymScreenState extends State<AddGymScreen> {
               ),
               const SizedBox(height: 16),
               
-              // Location with Google Maps
-              TextFormField(
-                controller: _locationController,
-                decoration: InputDecoration(
-                  labelText: 'Location',
-                  prefixIcon: const Icon(Icons.location_on),
-                  border: const OutlineInputBorder(),
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.map),
-                    onPressed: () {
-                      print('Opening Google Maps for location selection');
-                    },
-                  ),
-                ),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Please enter gym location';
-                  }
-                  return null;
-                },
-              ),
+              // Location Section
+              _buildLocationSection(),
               const SizedBox(height: 16),
               
               // Price per Month
@@ -105,11 +234,25 @@ class _AddGymScreenState extends State<AddGymScreen> {
                 child: ElevatedButton(
                   onPressed: () {
                     if (_formKey.currentState!.validate()) {
+                      final newGym = Gym(
+                        id: DateTime.now().millisecondsSinceEpoch.toString(),
+                        name: _nameController.text,
+                        location: _locationController.text,
+                        pricePerMonth: double.parse(_priceController.text),
+                        photo: _selectedImage?.path ?? '',
+                        createdAt: DateTime.now(),
+                        latitude: _selectedLatitude,
+                        longitude: _selectedLongitude,
+                      );
+                      
                       print('Adding Gym:');
-                      print('Name: ${_nameController.text}');
-                      print('Location: ${_locationController.text}');
-                      print('Price: \$${_priceController.text} per month');
-                      print('Photo: Selected gym photo');
+                      print('Name: ${newGym.name}');
+                      print('Location: ${newGym.location}');
+                      print('Coordinates: ${newGym.latitude}, ${newGym.longitude}');
+                      print('Price: \$${newGym.pricePerMonth} per month');
+                      print('Photo: ${newGym.photo}');
+                      
+                      widget.onGymAdded(newGym);
                       
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(
@@ -117,6 +260,8 @@ class _AddGymScreenState extends State<AddGymScreen> {
                           backgroundColor: Colors.green,
                         ),
                       );
+                      
+                      Navigator.pop(context);
                     }
                   },
                   style: ElevatedButton.styleFrom(
@@ -145,20 +290,100 @@ class _AddGymScreenState extends State<AddGymScreen> {
           style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
         ),
         const SizedBox(height: 8),
-        Container(
-          width: double.infinity,
-          height: 150,
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey),
-            borderRadius: BorderRadius.circular(8),
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.add_photo_alternate, size: 40),
-            onPressed: () {
-              print('Opening photo picker for gym photo');
-            },
+        GestureDetector(
+          onTap: _pickImage,
+          child: Container(
+            width: double.infinity,
+            height: 150,
+            decoration: BoxDecoration(
+              color: Colors.green[50],
+              border: Border.all(color: Colors.grey),
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: _selectedImage != null
+                ? Image.file(
+                    _selectedImage! as dynamic,
+                    fit: BoxFit.cover,
+                  )
+                : const Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.fitness_center, size: 50, color: Colors.green),
+                      SizedBox(height: 8),
+                      Text('Tap to add gym photo', style: TextStyle(color: Colors.grey)),
+                    ],
+                  ),
           ),
         ),
+      ],
+    );
+  }
+
+  Widget _buildLocationSection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Location',
+          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+        ),
+        const SizedBox(height: 8),
+        TextFormField(
+          controller: _locationController,
+          readOnly: true,
+          decoration: InputDecoration(
+            labelText: 'Gym Location',
+            prefixIcon: const Icon(Icons.location_on),
+            border: const OutlineInputBorder(),
+            suffixIcon: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.my_location),
+                  onPressed: _getCurrentLocation,
+                  tooltip: 'Use current location',
+                ),
+                IconButton(
+                  icon: const Icon(Icons.edit_location),
+                  onPressed: _openAddressInput,
+                  tooltip: 'Enter address manually',
+                ),
+              ],
+            ),
+          ),
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return 'Please select a location';
+            }
+            return null;
+          },
+        ),
+        const SizedBox(height: 8),
+        if (_locationController.text.isNotEmpty)
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: Colors.green[50],
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Row(
+              children: [
+                Icon(Icons.info, color: Colors.green[700], size: 16),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    _selectedLatitude != null 
+                        ? 'GPS Coordinates: ${_selectedLatitude!.toStringAsFixed(6)}, ${_selectedLongitude!.toStringAsFixed(6)}'
+                        : 'Manual Address',
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.green[700],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
       ],
     );
   }

@@ -1,30 +1,62 @@
 import 'package:flutter/material.dart';
-
+import 'package:image_picker/image_picker.dart';
+import 'package:sawa/presentation/models/gym_owner_models.dart';
 class CoachesListScreen extends StatefulWidget {
-  const CoachesListScreen({super.key});
+  final List<Coach> coaches;
+  final Function(Coach) onCoachAdded;
+  
+  final Function(int) onCoachDeleted;
+
+  const CoachesListScreen({
+    super.key,
+    required this.coaches,
+    required this.onCoachAdded,
+    required this.onCoachDeleted,
+  });
 
   @override
   State<CoachesListScreen> createState() => _CoachesListScreenState();
 }
 
 class _CoachesListScreenState extends State<CoachesListScreen> {
-  final List<Coach> _coaches = [
-    Coach('John Smith', '5 years', 'assets/coach1.jpg'),
-    Coach('Sarah Johnson', '3 years', 'assets/coach2.jpg'),
-    Coach('Mike Davis', '7 years', 'assets/coach3.jpg'),
-  ];
-
   void _addCoach() {
-    print('Navigating to Add Coach screen');
-    // In real app, you'd navigate to AddCoachScreen
+    print('Opening Add Coach screen');
     showDialog(
       context: context,
       builder: (context) => AddCoachDialog(
         onCoachAdded: (coach) {
-          setState(() {
-            _coaches.add(coach);
-          });
+          widget.onCoachAdded(coach);
         },
+      ),
+    );
+  }
+
+  void _deleteCoach(int index) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Coach'),
+        content: Text('Are you sure you want to delete ${widget.coaches[index].name}?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            onPressed: () {
+              widget.onCoachDeleted(index);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Coach deleted successfully!'),
+                  backgroundColor: Colors.green,
+                ),
+              );
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('Delete'),
+          ),
+        ],
       ),
     );
   }
@@ -43,45 +75,73 @@ class _CoachesListScreenState extends State<CoachesListScreen> {
           ),
         ],
       ),
-      body: _coaches.isEmpty
+      floatingActionButton: FloatingActionButton(
+        onPressed: _addCoach,
+        backgroundColor: Colors.green[700],
+        child: const Icon(Icons.add, color: Colors.white),
+      ),
+      body: widget.coaches.isEmpty
           ? const Center(
-              child: Text('No coaches added yet'),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.people, size: 64, color: Colors.grey),
+                  SizedBox(height: 16),
+                  Text('No coaches added yet'),
+                  SizedBox(height: 8),
+                  Text('Tap the + button to add a coach', style: TextStyle(color: Colors.grey)),
+                ],
+              ),
             )
           : ListView.builder(
               padding: const EdgeInsets.all(16),
-              itemCount: _coaches.length,
+              itemCount: widget.coaches.length,
               itemBuilder: (context, index) {
-                return _buildCoachCard(_coaches[index]);
+                return _buildCoachCard(widget.coaches[index], index);
               },
             ),
     );
   }
 
-  Widget _buildCoachCard(Coach coach) {
+  Widget _buildCoachCard(Coach coach, int index) {
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: Colors.green[100],
-          child: const Icon(Icons.person, color: Colors.green),
+          backgroundImage: coach.photo.isNotEmpty 
+              ? FileImage(coach.photo as dynamic)
+              : null,
+          child: coach.photo.isEmpty 
+              ? const Icon(Icons.person, color: Colors.green)
+              : null,
         ),
         title: Text(coach.name, style: const TextStyle(fontWeight: FontWeight.bold)),
-        subtitle: Text('Experience: ${coach.experience}'),
-        trailing: const Icon(Icons.arrow_forward_ios, size: 16),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('Experience: ${coach.experience}'),
+            Text('Specialization: ${coach.specialization}'),
+            Text(
+              'Joined: ${_formatDate(coach.joinedDate)}',
+              style: TextStyle(fontSize: 12, color: Colors.grey[600]),
+            ),
+          ],
+        ),
+        trailing: IconButton(
+          icon: const Icon(Icons.delete, color: Colors.red),
+          onPressed: () => _deleteCoach(index),
+        ),
         onTap: () {
           print('Viewing coach profile: ${coach.name}');
         },
       ),
     );
   }
-}
 
-class Coach {
-  final String name;
-  final String experience;
-  final String photo;
-
-  Coach(this.name, this.experience, this.photo);
+  String _formatDate(DateTime date) {
+    return '${date.day}/${date.month}/${date.year}';
+  }
 }
 
 class AddCoachDialog extends StatefulWidget {
@@ -97,6 +157,36 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _experienceController = TextEditingController();
+  final TextEditingController _specializationController = TextEditingController();
+  
+  XFile? _selectedImage;
+
+  Future<void> _pickImage() async {
+    final ImagePicker picker = ImagePicker();
+    try {
+      final XFile? image = await picker.pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 400,
+        maxHeight: 400,
+        imageQuality: 80,
+      );
+      
+      if (image != null) {
+        setState(() {
+          _selectedImage = image;
+        });
+        print('Selected coach image: ${image.path}');
+      }
+    } catch (e) {
+      print('Error picking image: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Failed to pick image'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -109,18 +199,29 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
             mainAxisSize: MainAxisSize.min,
             children: [
               // Coach Photo
-              Container(
-                width: 100,
-                height: 100,
-                decoration: BoxDecoration(
-                  border: Border.all(color: Colors.grey),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: IconButton(
-                  icon: const Icon(Icons.add_a_photo, size: 30),
-                  onPressed: () {
-                    print('Opening photo picker for coach photo');
-                  },
+              GestureDetector(
+                onTap: _pickImage,
+                child: Container(
+                  width: 100,
+                  height: 100,
+                  decoration: BoxDecoration(
+                    color: Colors.green[50],
+                    border: Border.all(color: Colors.grey),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: _selectedImage != null
+                      ? Image.file(
+                          _selectedImage! as dynamic,
+                          fit: BoxFit.cover,
+                        )
+                      : const Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.person_add, size: 30, color: Colors.green),
+                            SizedBox(height: 4),
+                            Text('Add Photo', style: TextStyle(fontSize: 12, color: Colors.grey)),
+                          ],
+                        ),
                 ),
               ),
               const SizedBox(height: 16),
@@ -156,6 +257,22 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
                   return null;
                 },
               ),
+              const SizedBox(height: 16),
+              
+              // Specialization
+              TextFormField(
+                controller: _specializationController,
+                decoration: const InputDecoration(
+                  labelText: 'Specialization',
+                  border: OutlineInputBorder(),
+                ),
+                validator: (value) {
+                  if (value == null || value.isEmpty) {
+                    return 'Please enter specialization';
+                  }
+                  return null;
+                },
+              ),
             ],
           ),
         ),
@@ -169,15 +286,19 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
           onPressed: () {
             if (_formKey.currentState!.validate()) {
               final coach = Coach(
-                _nameController.text,
-                '${_experienceController.text} years',
-                'assets/coach_photo.jpg',
+                id: DateTime.now().millisecondsSinceEpoch.toString(),
+                name: _nameController.text,
+                experience: '${_experienceController.text} years',
+                photo: _selectedImage?.path ?? '',
+                specialization: _specializationController.text,
+                joinedDate: DateTime.now(),
               );
               
               print('Adding Coach:');
-              print('Name: ${_nameController.text}');
-              print('Experience: ${_experienceController.text} years');
-              print('Photo: Selected coach photo');
+              print('Name: ${coach.name}');
+              print('Experience: ${coach.experience}');
+              print('Specialization: ${coach.specialization}');
+              print('Photo: ${coach.photo}');
               
               widget.onCoachAdded(coach);
               Navigator.pop(context);
@@ -200,6 +321,7 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
   void dispose() {
     _nameController.dispose();
     _experienceController.dispose();
+    _specializationController.dispose();
     super.dispose();
   }
 }
