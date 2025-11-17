@@ -161,7 +161,7 @@ class GymOwnerDashboard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Welcome Back, ${authProvider.userName ?? "Gym Owner"}!',
+                        'Welcome Back, ${authProvider.name ?? "Gym Owner"}!',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,

@@ -182,7 +182,7 @@ class RestaurantOwnerDashboard extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(
-                        'Welcome Back, ${authProvider.userName ?? "Restaurant Owner"}!',
+                        'Welcome Back, ${authProvider.name ?? "Restaurant Owner"}!',
                         style: TextStyle(
                           fontSize: 18,
                           fontWeight: FontWeight.bold,
