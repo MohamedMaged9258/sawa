@@ -14,6 +14,7 @@ class AuthProvider with ChangeNotifier {
   String? _currentUserRole;
   String? _name;
   String? _email;
+  String? _uid;
   StreamSubscription<User?>? _authStateSubscription;
 
   User? get user => _user;
@@ -21,6 +22,7 @@ class AuthProvider with ChangeNotifier {
   String? get currentUserRole => _currentUserRole;
   String? get name => _name;
   String? get email => _email;
+  String? get uid => _uid;
 
   AuthProvider() {
     _authStateSubscription = _auth.authStateChanges().listen(
@@ -32,21 +34,31 @@ class AuthProvider with ChangeNotifier {
     _user = user;
     if (user == null) {
       _currentUserRole = null;
+      _name = null;
+      _email = null;
+      _uid = null;
     } else {
-      await _fetchUserRole(user.uid);
+      await _fetchUserData(user.uid);
     }
     notifyListeners();
   }
 
-  Future<void> _fetchUserRole(String uid) async {
+  Future<void> _fetchUserData(String uid) async {
     try {
       final doc = await _firestore.collection('users').doc(uid).get();
       if (doc.exists) {
-        _currentUserRole = doc.data()?['role'];
+        final data = doc.data();
+        _currentUserRole = data?['role'];
+        _name = data?['name'];
+        _email = data?['email'];
+        _uid = data?['uid'];
       }
     } catch (e) {
-      debugPrint("Error fetching user role: $e");
+      debugPrint("Error fetching user data: $e");
       _currentUserRole = null;
+      _name = null;
+      _email = null;
+      _uid = null;
     }
   }
 
@@ -81,15 +93,13 @@ class AuthProvider with ChangeNotifier {
 
       // Save user data to Firestore
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
+        'uid': userCredential.user!.uid,
         'name': name,
         'email': email,
         'role': role,
         'createdAt': Timestamp.now(),
       });
 
-      _name = name;
-      _currentUserRole = role;
-      _email = email;
       // The authStateChanges listener will handle the rest
     } on FirebaseAuthException catch (e) {
       debugPrint("Firebase register error: ${e.message}");

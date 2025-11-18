@@ -76,7 +76,7 @@ class _LoginScreenState extends State<LoginScreen> {
                 const SizedBox(height: 32),
                 CustomTextField(
                   controller: _emailController,
-                  labelText: 'Email or Username',
+                  labelText: 'Email',
                   prefixIcon: Icons.person,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
