@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
 import 'package:sawa/presentation/providers/gym_provider.dart';
-import 'package:sawa/presentation/models/gym_owner_models.dart';
 import 'package:sawa/presentation/screens/gym_owner/add_gym_screen.dart';
 import 'package:sawa/presentation/screens/gym_owner/coaches_list_screen.dart';
 import 'package:sawa/presentation/screens/gym_owner/gym_details_screen.dart';
