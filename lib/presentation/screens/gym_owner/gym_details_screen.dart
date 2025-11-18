@@ -1,57 +1,151 @@
+// ignore_for_file: avoid_print, use_build_context_synchronously
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sawa/presentation/models/gym_owner_models.dart';
+import 'package:sawa/presentation/providers/auth_provider.dart';
+import 'package:sawa/presentation/providers/gym_provider.dart'; // Import static provider
 
 class GymDetailsScreen extends StatefulWidget {
-  final List<Gym> gyms;
-  final Function(Gym) onGymUpdated;
-  final Function(int) onGymDeleted;
-
-  const GymDetailsScreen({
-    super.key,
-    required this.gyms,
-    required this.onGymUpdated,
-    required this.onGymDeleted,
-  });
+  // REMOVED: All parameters are gone. This screen is self-sufficient.
+  const GymDetailsScreen({super.key});
 
   @override
   State<GymDetailsScreen> createState() => _GymDetailsScreenState();
 }
 
 class _GymDetailsScreenState extends State<GymDetailsScreen> {
-  void _editGym(int index) {
-    print('Editing gym: ${widget.gyms[index].name}');
+  // --- STATE VARIABLES ---
+  bool _isLoading = true;
+  List<Gym> _gyms = [];
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchGyms();
+  }
+
+  /// Fetches the user's gyms from the static provider
+  Future<void> _fetchGyms() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final ownerId = Provider.of<AuthProvider>(context, listen: false).uid;
+      if (ownerId == null || ownerId.isEmpty) {
+        throw Exception("User is not logged in.");
+      }
+      
+      final fetchedGyms = await GymProvider.fetchGymsByOwner(ownerId);
+      
+      setState(() {
+        _gyms = fetchedGyms;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  /// Called from the EditGymDialog
+  Future<void> _updateGym(Gym updatedGym) async {
+    try {
+      await GymProvider.updateGym(updatedGym);
+      
+      // Update the gym in the local list
+      setState(() {
+        final index = _gyms.indexWhere((gym) => gym.gid == updatedGym.gid);
+        if (index != -1) {
+          _gyms[index] = updatedGym;
+        }
+      });
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gym updated successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to update gym: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
+
+  void _showEditDialog(int index) {
+    print('Editing gym: ${_gyms[index].name}');
     showDialog(
       context: context,
       builder: (context) => EditGymDialog(
-        gym: widget.gyms[index],
+        gym: _gyms[index],
         onGymUpdated: (updatedGym) {
-          widget.onGymUpdated(updatedGym);
+          // Pass the update to our stateful method
+          _updateGym(updatedGym);
         },
       ),
     );
   }
 
-  void _deleteGym(int index) {
+  void _showDeleteDialog(int index) {
+    final gymToDelete = _gyms[index];
+    
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: context, // Uses the Screen's context
+      // 1. RENAME context -> dialogContext to avoid confusion
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Gym'),
-        content: Text('Are you sure you want to delete ${widget.gyms[index].name}?'),
+        content: Text('Are you sure you want to delete ${gymToDelete.name}?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            // Use dialogContext to close the dialog
+            onPressed: () => Navigator.pop(dialogContext),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              widget.onGymDeleted(index);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Gym deleted successfully!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
+            onPressed: () async {
+              // 2. Close the dialog first using dialogContext
+              Navigator.pop(dialogContext);
+              
+              try {
+                // Perform async delete
+                await GymProvider.deleteGym(gymToDelete);
+                
+                // 3. SAFETY CHECK: Is the Screen still there?
+                if (!mounted) return;
+                
+                // Update local state
+                setState(() {
+                  _gyms.removeAt(index);
+                });
+                
+                // 4. Use 'context' (Screen), NOT 'dialogContext'
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Gym deleted successfully!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } catch (e) {
+                // Safety check before using context
+                if (!mounted) return;
+                
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to delete gym: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
@@ -69,27 +163,47 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
         backgroundColor: Colors.green[700],
         foregroundColor: Colors.white,
       ),
-      body: widget.gyms.isEmpty
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.fitness_center, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text('No gyms added yet'),
-                  SizedBox(height: 8),
-                  Text('Tap "Add Gym" to get started', style: TextStyle(color: Colors.grey)),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16.0),
-              itemCount: widget.gyms.length,
-              itemBuilder: (context, index) {
-                return _buildGymCard(widget.gyms[index], index);
-              },
-            ),
+      body: _buildBody(),
     );
+  }
+  
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text('Error: $_error', style: const TextStyle(color: Colors.red)),
+        ),
+      );
+    }
+    
+    if (_gyms.isEmpty) {
+       return const Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.fitness_center, size: 64, color: Colors.grey),
+              SizedBox(height: 16),
+              Text('No gyms added yet'),
+              SizedBox(height: 8),
+              Text('Go to the dashboard to add a gym', style: TextStyle(color: Colors.grey)),
+            ],
+          ),
+        );
+    }
+
+    return ListView.builder(
+        padding: const EdgeInsets.all(16.0),
+        itemCount: _gyms.length,
+        itemBuilder: (context, index) {
+          // Get gym from state
+          return _buildGymCard(_gyms[index], index);
+        },
+      );
   }
 
   Widget _buildGymCard(Gym gym, int index) {
@@ -111,8 +225,12 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
                   decoration: BoxDecoration(
                     color: Colors.green[100],
                     borderRadius: BorderRadius.circular(8),
-                    image: const DecorationImage(
-                      image: AssetImage('assets/gym_placeholder.jpg'),
+                    // FIXED: Load image from network or show placeholder
+                    image: DecorationImage(
+                      image: (gym.photo.isNotEmpty
+                              ? NetworkImage(gym.photo)
+                              : const AssetImage('assets/gym_placeholder.jpg'))
+                          as ImageProvider,
                       fit: BoxFit.cover,
                     ),
                   ),
@@ -177,7 +295,7 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.edit),
                     label: const Text('Edit'),
-                    onPressed: () => _editGym(index),
+                    onPressed: () => _showEditDialog(index), // Use new method
                   ),
                 ),
                 const SizedBox(width: 8),
@@ -185,7 +303,7 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
                   child: OutlinedButton.icon(
                     icon: const Icon(Icons.delete, color: Colors.red),
                     label: const Text('Delete', style: TextStyle(color: Colors.red)),
-                    onPressed: () => _deleteGym(index),
+                    onPressed: () => _showDeleteDialog(index), // Use new method
                   ),
                 ),
               ],
@@ -201,6 +319,7 @@ class _GymDetailsScreenState extends State<GymDetailsScreen> {
   }
 }
 
+// --- EditGymDialog (Slightly modified to pass back the full gym object) ---
 class EditGymDialog extends StatefulWidget {
   final Gym gym;
   final Function(Gym) onGymUpdated;
@@ -246,8 +365,12 @@ class _EditGymDialogState extends State<EditGymDialog> {
                 decoration: BoxDecoration(
                   border: Border.all(color: Colors.grey),
                   borderRadius: BorderRadius.circular(8),
-                  image: const DecorationImage(
-                    image: AssetImage('assets/gym_placeholder.jpg'),
+                  // FIXED: Show the actual gym photo
+                  image: DecorationImage(
+                    image: (widget.gym.photo.isNotEmpty
+                            ? NetworkImage(widget.gym.photo)
+                            : const AssetImage('assets/gym_placeholder.jpg'))
+                        as ImageProvider,
                     fit: BoxFit.cover,
                   ),
                 ),
@@ -263,6 +386,11 @@ class _EditGymDialogState extends State<EditGymDialog> {
                       icon: const Icon(Icons.camera_alt, size: 15, color: Colors.white),
                       onPressed: () {
                         print('Changing gym photo');
+                        // Note: Photo changing in edit dialog is not
+                        // implemented in the static provider yet.
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(content: Text('Photo update not yet implemented.'))
+                        );
                       },
                     ),
                   ),
@@ -270,7 +398,7 @@ class _EditGymDialogState extends State<EditGymDialog> {
               ),
               const SizedBox(height: 16),
               
-              // Gym Name
+              // ... (Form fields are unchanged)
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -285,8 +413,6 @@ class _EditGymDialogState extends State<EditGymDialog> {
                 },
               ),
               const SizedBox(height: 16),
-              
-              // Location
               TextFormField(
                 controller: _locationController,
                 decoration: InputDecoration(
@@ -307,8 +433,6 @@ class _EditGymDialogState extends State<EditGymDialog> {
                 },
               ),
               const SizedBox(height: 16),
-              
-              // Price
               TextFormField(
                 controller: _priceController,
                 decoration: const InputDecoration(
@@ -338,29 +462,17 @@ class _EditGymDialogState extends State<EditGymDialog> {
         ElevatedButton(
           onPressed: () {
             if (_formKey.currentState!.validate()) {
-              final updatedGym = Gym(
-                id: widget.gym.id,
+              // FIXED: Use copyWith to preserve all unchanged data
+              final updatedGym = widget.gym.copyWith(
                 name: _nameController.text,
                 location: _locationController.text,
                 pricePerMonth: double.parse(_priceController.text),
-                photo: widget.gym.photo,
-                createdAt: widget.gym.createdAt,
+                // Note: lat/long are not updated here,
+                // this would require the location picker logic
               );
-              
-              print('Updating Gym:');
-              print('Name: ${updatedGym.name}');
-              print('Location: ${updatedGym.location}');
-              print('Price: \$${updatedGym.pricePerMonth} per month');
               
               widget.onGymUpdated(updatedGym);
               Navigator.pop(context);
-              
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Gym details updated successfully!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
             }
           },
           child: const Text('Save Changes'),
