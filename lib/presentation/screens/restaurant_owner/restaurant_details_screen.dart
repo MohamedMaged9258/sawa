@@ -1,59 +1,56 @@
-// lib/presentation/screens/restaurant_owner/restaurant_details_screen.dart
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:sawa/presentation/models/restaurant_owner_models.dart';
+import 'package:sawa/presentation/providers/auth_provider.dart';
+import 'package:sawa/presentation/providers/restaurant_provider.dart';
 
 class RestaurantDetailsScreen extends StatefulWidget {
-  final List<Restaurant> restaurants;
-  final Function(Restaurant) onRestaurantUpdated;
-  final Function(int) onRestaurantDeleted;
-
-  const RestaurantDetailsScreen({
-    super.key,
-    required this.restaurants,
-    required this.onRestaurantUpdated,
-    required this.onRestaurantDeleted,
-  });
+  const RestaurantDetailsScreen({super.key});
 
   @override
   State<RestaurantDetailsScreen> createState() => _RestaurantDetailsScreenState();
 }
 
 class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
-  void _editRestaurant(int index) {
-    print('Editing restaurant: ${widget.restaurants[index].name}');
-    // Implement edit functionality here
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Edit restaurant functionality will be implemented here'),
-        backgroundColor: Colors.orange,
-      ),
-    );
+  List<Restaurant> _restaurants = [];
+  bool _isLoading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchRestaurants();
   }
 
-  void _deleteRestaurant(int index) {
+  Future<void> _fetchRestaurants() async {
+    setState(() => _isLoading = true);
+    try {
+      final ownerId = Provider.of<AuthProvider>(context, listen: false).uid;
+      if (ownerId != null) {
+        final data = await RestaurantProvider.fetchRestaurantsByOwner(ownerId);
+        setState(() => _restaurants = data);
+      }
+    } catch (e) {
+      // Handle error
+    } finally {
+      setState(() => _isLoading = false);
+    }
+  }
+
+  void _deleteRestaurant(Restaurant restaurant) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Restaurant'),
-        content: Text('Are you sure you want to delete ${widget.restaurants[index].name}?'),
+        content: Text('Delete ${restaurant.name}?'),
         actions: [
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
           TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () {
-              widget.onRestaurantDeleted(index);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Restaurant deleted successfully!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
+            onPressed: () async {
+              Navigator.pop(dialogContext);
+              await RestaurantProvider.deleteRestaurant(restaurant);
+              if (mounted) _fetchRestaurants();
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
           ),
         ],
       ),
@@ -63,147 +60,28 @@ class _RestaurantDetailsScreenState extends State<RestaurantDetailsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('My Restaurants'),
-        backgroundColor: Colors.orange[700],
-        foregroundColor: Colors.white,
-      ),
-      body: widget.restaurants.isEmpty
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.restaurant, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text('No restaurants added yet'),
-                  SizedBox(height: 8),
-                  Text('Tap "Add Restaurant" to get started', style: TextStyle(color: Colors.grey)),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16.0),
-              itemCount: widget.restaurants.length,
-              itemBuilder: (context, index) {
-                return _buildRestaurantCard(widget.restaurants[index], index);
-              },
-            ),
-    );
-  }
-
-  Widget _buildRestaurantCard(Restaurant restaurant, int index) {
-    return Card(
-      elevation: 2,
-      margin: const EdgeInsets.only(bottom: 16),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Restaurant Photo
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.orange[100],
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: const Icon(Icons.restaurant, size: 40, color: Colors.orange),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        restaurant.name,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.food_bank, color: Colors.orange[700], size: 16),
-                          const SizedBox(width: 4),
-                          Text(
-                            restaurant.cuisineType,
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.location_on, color: Colors.red[500], size: 16),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              restaurant.location,
-                              style: TextStyle(color: Colors.grey[600]),
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Row(
-                        children: [
-                          Icon(Icons.attach_money, color: Colors.green[700], size: 16),
-                          const SizedBox(width: 4),
-                          Text(
-                            '\$${restaurant.priceRange.toStringAsFixed(2)} per person',
-                            style: const TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.green,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Added: ${_formatDate(restaurant.createdAt)}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey[500],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.edit),
-                    label: const Text('Edit'),
-                    onPressed: () => _editRestaurant(index),
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: OutlinedButton.icon(
+      appBar: AppBar(title: const Text('My Restaurants'), backgroundColor: Colors.orange[700], foregroundColor: Colors.white),
+      body: _isLoading 
+        ? const Center(child: CircularProgressIndicator())
+        : ListView.builder(
+            itemCount: _restaurants.length,
+            padding: const EdgeInsets.all(16),
+            itemBuilder: (context, index) {
+              final r = _restaurants[index];
+              return Card(
+                margin: const EdgeInsets.only(bottom: 16),
+                child: ListTile(
+                  leading: r.photo.isNotEmpty ? CircleAvatar(backgroundImage: NetworkImage(r.photo)) : const Icon(Icons.restaurant),
+                  title: Text(r.name),
+                  subtitle: Text('${r.cuisineType} • ${r.location}'),
+                  trailing: IconButton(
                     icon: const Icon(Icons.delete, color: Colors.red),
-                    label: const Text('Delete', style: TextStyle(color: Colors.red)),
-                    onPressed: () => _deleteRestaurant(index),
+                    onPressed: () => _deleteRestaurant(r),
                   ),
                 ),
-              ],
-            ),
-          ],
-        ),
-      ),
+              );
+            },
+          ),
     );
-  }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
   }
 }
