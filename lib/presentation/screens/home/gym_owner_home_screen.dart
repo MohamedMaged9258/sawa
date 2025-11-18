@@ -1,3 +1,5 @@
+// ignore_for_file: duplicate_import, deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
@@ -104,7 +106,10 @@ class _GymOwnerHomeScreenState extends State<GymOwnerHomeScreen> {
             onPressed: () {
               Provider.of<AuthProvider>(context, listen: false).logout();
               Navigator.pushNamedAndRemoveUntil(
-                  context, '/login', (route) => false);
+                context,
+                '/login',
+                (route) => false,
+              );
             },
             tooltip: 'Logout',
           ),
@@ -156,10 +161,7 @@ class GymOwnerDashboard extends StatelessWidget {
   });
 
   void _navigateToScreen(BuildContext context, Widget screen) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => screen),
-    );
+    Navigator.push(context, MaterialPageRoute(builder: (context) => screen));
   }
 
   @override
@@ -173,9 +175,7 @@ class GymOwnerDashboard extends StatelessWidget {
           const SizedBox(height: 24),
           _buildStatisticsOverview(),
           const SizedBox(height: 24),
-          Expanded(
-            child: _buildDashboardGrid(context),
-          ),
+          Expanded(child: _buildDashboardGrid(context)),
         ],
       ),
     );
@@ -234,7 +234,12 @@ class GymOwnerDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
