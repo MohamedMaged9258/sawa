@@ -1,15 +1,18 @@
 // ignore_for_file: avoid_print, use_build_context_synchronously
 
+import 'dart:io'; // Import 'dart:io' for File
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:sawa/presentation/models/gym_owner_models.dart';
+import 'package:sawa/presentation/providers/auth_provider.dart';
+import 'package:sawa/presentation/providers/gym_provider.dart'; // Import static provider
 
 class AddGymScreen extends StatefulWidget {
-  final Function(Gym) onGymAdded;
-
-  const AddGymScreen({super.key, required this.onGymAdded});
+  // REMOVED: onGymAdded callback is no longer needed
+  const AddGymScreen({super.key});
 
   @override
   State<AddGymScreen> createState() => _AddGymScreenState();
@@ -24,6 +27,11 @@ class _AddGymScreenState extends State<AddGymScreen> {
   XFile? _selectedImage;
   double? _selectedLatitude;
   double? _selectedLongitude;
+  
+  bool _isAdding = false; // State for loading indicator
+
+  // --- _pickImage, _getCurrentLocation, _openAddressInput methods ---
+  // --- are unchanged. ---
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -162,6 +170,68 @@ class _AddGymScreenState extends State<AddGymScreen> {
       }
     }
   }
+  
+  /// Submits the form, calls the static provider, and handles state.
+  Future<void> _submitForm() async {
+    if (!_formKey.currentState!.validate()) {
+      return; // Form is invalid
+    }
+    
+    setState(() {
+      _isAdding = true;
+    });
+
+    try {
+      // Get the current user's ID
+      final ownerId = Provider.of<AuthProvider>(context, listen: false).uid;
+      if (ownerId == null || ownerId.isEmpty) {
+        throw Exception("You must be logged in to add a gym.");
+      }
+
+      // Create the Gym object
+      final newGym = Gym(
+        gid: DateTime.now().millisecondsSinceEpoch.toString(),
+        gymOwnerId: ownerId, // Set the ownerId
+        name: _nameController.text,
+        location: _locationController.text,
+        pricePerMonth: double.parse(_priceController.text),
+        photo: '', // Will be set by the provider
+        createdAt: DateTime.now(),
+        latitude: _selectedLatitude,
+        longitude: _selectedLongitude,
+      );
+      
+      print('Adding Gym...');
+      
+      // Call the static provider method
+      await GymProvider.addGym(newGym, _selectedImage);
+      
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Gym added successfully!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      
+      Navigator.pop(context); // Go back to the home screen
+
+    } catch (e) {
+      print("Failed to add gym: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to add gym: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    } finally {
+      // Ensure loading state is reset even if an error occurs
+      if (mounted) {
+        setState(() {
+          _isAdding = false;
+        });
+      }
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -178,6 +248,7 @@ class _AddGymScreenState extends State<AddGymScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // ... (All form fields are unchanged)
               const Text(
                 'Add New Gym',
                 style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
@@ -234,46 +305,19 @@ class _AddGymScreenState extends State<AddGymScreen> {
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: () {
-                    if (_formKey.currentState!.validate()) {
-                      final newGym = Gym(
-                        id: DateTime.now().millisecondsSinceEpoch.toString(),
-                        name: _nameController.text,
-                        location: _locationController.text,
-                        pricePerMonth: double.parse(_priceController.text),
-                        photo: _selectedImage?.path ?? '',
-                        createdAt: DateTime.now(),
-                        latitude: _selectedLatitude,
-                        longitude: _selectedLongitude,
-                      );
-                      
-                      print('Adding Gym:');
-                      print('Name: ${newGym.name}');
-                      print('Location: ${newGym.location}');
-                      print('Coordinates: ${newGym.latitude}, ${newGym.longitude}');
-                      print('Price: \$${newGym.pricePerMonth} per month');
-                      print('Photo: ${newGym.photo}');
-                      
-                      widget.onGymAdded(newGym);
-                      
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Gym added successfully!'),
-                          backgroundColor: Colors.green,
-                        ),
-                      );
-                      
-                      Navigator.pop(context);
-                    }
-                  },
+                  onPressed: _isAdding ? null : _submitForm, // Disable when loading
                   style: ElevatedButton.styleFrom(
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     backgroundColor: Colors.green[700],
                   ),
-                  child: const Text(
-                    'Add Gym',
-                    style: TextStyle(fontSize: 16, color: Colors.white),
-                  ),
+                  child: _isAdding
+                      ? const CircularProgressIndicator(
+                          valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                        )
+                      : const Text(
+                          'Add Gym',
+                          style: TextStyle(fontSize: 16, color: Colors.white),
+                        ),
                 ),
               ),
             ],
@@ -302,9 +346,10 @@ class _AddGymScreenState extends State<AddGymScreen> {
               border: Border.all(color: Colors.grey),
               borderRadius: BorderRadius.circular(8),
             ),
+            // FIXED: Use File(_selectedImage!.path)
             child: _selectedImage != null
                 ? Image.file(
-                    _selectedImage! as dynamic,
+                    File(_selectedImage!.path), // Convert XFile to File
                     fit: BoxFit.cover,
                   )
                 : const Column(
@@ -321,6 +366,7 @@ class _AddGymScreenState extends State<AddGymScreen> {
     );
   }
 
+  // ... (_buildLocationSection and dispose methods are unchanged)
   Widget _buildLocationSection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
