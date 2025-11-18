@@ -1,4 +1,4 @@
-// ignore_for_file: avoid_print
+// ignore_for_file: avoid_print, avoid_types_as_parameter_names
 
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;

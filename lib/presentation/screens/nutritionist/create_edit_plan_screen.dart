@@ -1,6 +1,8 @@
 // lib/presentation/screens/nutritionist/create_edit_plan_screen.dart
 // Note: This file now manages its own state for saving the plan.
 
+// ignore_for_file: avoid_print, deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
