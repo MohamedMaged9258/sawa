@@ -1,11 +1,10 @@
-// lib/presentation/screens/nutritionist/nutritionist_home_screen.dart
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
+import 'package:sawa/presentation/providers/nutritionist_provider.dart'; // NEW
 import '../nutritionist/consultation_screen.dart';
 import '../nutritionist/clients_screen.dart';
 import '../nutritionist/plans_screen.dart';
-import '../nutritionist/nutritionist_profile_screen.dart';
 
 class NutritionistHomeScreen extends StatefulWidget {
   const NutritionistHomeScreen({super.key});
@@ -17,6 +16,7 @@ class NutritionistHomeScreen extends StatefulWidget {
 class _NutritionistHomeScreenState extends State<NutritionistHomeScreen> {
   int _currentIndex = 0;
 
+  // Define screens list
   final List<Widget> _screens = [
     const DashboardScreen(),
     const ClientsScreen(),
@@ -33,18 +33,7 @@ class _NutritionistHomeScreenState extends State<NutritionistHomeScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const NutritionistProfileScreen(),
-                ),
-              );
-            },
-            tooltip: 'Profile',
-          ),
+          // REMOVED: Profile button moved to dashboard grid
           IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
@@ -60,13 +49,15 @@ class _NutritionistHomeScreenState extends State<NutritionistHomeScreen> {
         ],
       ),
       body: _screens[_currentIndex],
+      // UPDATED: Bottom Navigation Bar Style
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
-        type: BottomNavigationBarType.fixed,
-        backgroundColor: Colors.purple[700],
-        selectedItemColor: Colors.white,
-        unselectedItemColor: Colors.white70,
+        type: BottomNavigationBarType.fixed, // Fixed style
+        backgroundColor: Colors.purple[700], // Solid background
+        selectedItemColor: Colors.white, // High contrast selected item
+        unselectedItemColor:
+            Colors.purple[300], // Adjusted unselected color for better contrast
         items: const [
           BottomNavigationBarItem(
             icon: Icon(Icons.dashboard),
@@ -84,104 +75,152 @@ class _NutritionistHomeScreenState extends State<NutritionistHomeScreen> {
   }
 }
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  bool _isLoading = true;
+  Map<String, dynamic> _stats = {};
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDashboardData();
+  }
+
+  /// Fetches statistics from the static provider
+  Future<void> _fetchDashboardData() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final ownerId = Provider.of<AuthProvider>(context, listen: false).uid;
+      if (ownerId == null || ownerId.isEmpty) {
+        throw Exception("User ID not available.");
+      }
+
+      final stats = await NutritionistProvider.getStatistics(ownerId);
+
+      if (!mounted) return;
+      setState(() {
+        _stats = stats;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Consumer<AuthProvider>(
-            builder: (context, authProvider, child) {
-              return Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: Colors.purple[100],
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.medical_services,
-                          size: 32,
-                          color: Colors.purple[700],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Welcome Back, ${authProvider.name ?? "Nutritionist"}!',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[800],
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Manage your clients and meal plans',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
-          ),
-          const SizedBox(height: 24),
-          GridView.count(
-            shrinkWrap: true,
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Text(
+          'Error loading dashboard: $_error',
+          style: const TextStyle(color: Colors.red),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _fetchDashboardData,
+      child: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildDashboardCard(
-                'Total Clients',
-                '24',
-                Icons.people,
-                Colors.blue,
+              Consumer<AuthProvider>(
+                builder: (context, authProvider, child) {
+                  return _buildWelcomeCard(authProvider.name ?? "Nutritionist");
+                },
               ),
-              _buildDashboardCard(
-                'Active Plans',
-                '18',
-                Icons.assignment,
-                Colors.green,
-              ),
-              _buildDashboardCard(
-                'Pending Consultations',
-                '5',
-                Icons.chat,
-                Colors.orange,
-              ),
-              _buildDashboardCard(
-                'Monthly Revenue',
-                '\$1,240',
-                Icons.attach_money,
-                Colors.purple,
+              const SizedBox(height: 24),
+              GridView.count(
+                shrinkWrap: true,
+                physics: const NeverScrollableScrollPhysics(),
+                crossAxisCount: 2,
+                crossAxisSpacing: 16,
+                mainAxisSpacing: 16,
+                children: [
+                  _buildDashboardCard(
+                    'Total Clients',
+                    (_stats['totalClients'] ?? 0).toString(),
+                    Icons.people,
+                    Colors.blue,
+                  ),
+                  _buildDashboardCard(
+                    'Active Plans',
+                    (_stats['activePlans'] ?? 0).toString(),
+                    Icons.assignment,
+                    Colors.green,
+                  ),
+                  _buildDashboardCard(
+                    'Pending Consultations',
+                    (_stats['pendingConsultations'] ?? 0).toString(),
+                    Icons.chat,
+                    Colors.orange,
+                  ),
+                  _buildDashboardCard(
+                    'Monthly Revenue',
+                    '\$${_stats['monthlyRevenue'] ?? '0'}',
+                    Icons.attach_money,
+                    Colors.purple,
+                  ),
+                ],
               ),
             ],
           ),
-        ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildWelcomeCard(String name) {
+    return Card(
+      // ... (Styling remains the same)
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Row(
+          children: [
+            Icon(Icons.medical_services, size: 32, color: Colors.purple[700]),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Welcome Back, $name!',
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    'Manage your clients and meal plans',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
