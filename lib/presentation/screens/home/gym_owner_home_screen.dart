@@ -225,7 +225,7 @@ class GymOwnerDashboard extends StatelessWidget {
   Widget _buildStatisticsOverview() {
     return Row(
       children: [
-        Expanded(child: _buildStatCard('Gyms', gymCount.toString(), Icons.fitness_center, Colors.green)),
+          Expanded(child: _buildStatCard('Gyms', gymCount.toString(), Icons.fitness_center, Colors.green)),
         const SizedBox(width: 12),
         Expanded(child: _buildStatCard('Coaches', coachCount.toString(), Icons.people, Colors.blue)),
         const SizedBox(width: 12),

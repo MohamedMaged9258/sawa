@@ -13,9 +13,7 @@ import 'firebase_options.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  await Firebase.initializeApp(
-    options: DefaultFirebaseOptions.currentPlatform,
-  );
+  await Firebase.initializeApp(options: DefaultFirebaseOptions.currentPlatform);
   runApp(const MyApp());
 }
 
@@ -25,9 +23,7 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-      ],
+      providers: [ChangeNotifierProvider(create: (_) => AuthProvider())],
       child: MaterialApp(
         title: 'SAWA Fitness App',
         theme: ThemeData(
@@ -47,7 +43,8 @@ class MyApp extends StatelessWidget {
           '/forgot-password': (context) => const ForgotPasswordScreen(),
           '/member-home': (context) => const MemberHomeScreen(),
           '/gym-owner-home': (context) => const GymOwnerHomeScreen(),
-          '/restaurant-owner-home': (context) => const RestaurantOwnerHomeScreen(),
+          '/restaurant-owner-home': (context) =>
+              const RestaurantOwnerHomeScreen(),
           '/nutritionist-home': (context) => const NutritionistHomeScreen(),
         },
         home: const AuthWrapper(),
@@ -64,11 +61,7 @@ class AuthWrapper extends StatelessWidget {
     final authProvider = Provider.of<AuthProvider>(context);
 
     if (authProvider.isLoading) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
     if (authProvider.currentUserRole != null) {
