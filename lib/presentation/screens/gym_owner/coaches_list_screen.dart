@@ -1,57 +1,111 @@
+// ignore_for_file: avoid_print, use_build_context_synchronously, deprecated_member_use
+
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+import 'package:provider/provider.dart';
 import 'package:sawa/presentation/models/gym_owner_models.dart';
-class CoachesListScreen extends StatefulWidget {
-  final List<Coach> coaches;
-  final Function(Coach) onCoachAdded;
-  
-  final Function(int) onCoachDeleted;
+import 'package:sawa/presentation/providers/auth_provider.dart';
+import 'package:sawa/presentation/providers/gym_provider.dart';
 
-  const CoachesListScreen({
-    super.key,
-    required this.coaches,
-    required this.onCoachAdded,
-    required this.onCoachDeleted,
-  });
+class CoachesListScreen extends StatefulWidget {
+  const CoachesListScreen({super.key});
 
   @override
   State<CoachesListScreen> createState() => _CoachesListScreenState();
 }
 
 class _CoachesListScreenState extends State<CoachesListScreen> {
-  void _addCoach() {
-    print('Opening Add Coach screen');
-    showDialog(
+  bool _isLoading = true;
+  List<Coach> _coaches = [];
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchCoaches();
+  }
+
+  Future<void> _fetchCoaches() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final ownerId = Provider.of<AuthProvider>(context, listen: false).uid;
+      if (ownerId == null || ownerId.isEmpty) {
+        throw Exception("User is not logged in.");
+      }
+      final fetchedCoaches = await GymProvider.fetchCoachesByOwner(ownerId);
+      setState(() {
+        _coaches = fetchedCoaches;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _showAddCoachDialog() async {
+    final bool? coachWasAdded = await showDialog<bool>(
       context: context,
-      builder: (context) => AddCoachDialog(
-        onCoachAdded: (coach) {
-          widget.onCoachAdded(coach);
-        },
-      ),
+      builder: (context) => const AddCoachDialog(),
     );
+
+    if (coachWasAdded == true) {
+      _fetchCoaches(); // Refresh the list
+    }
   }
 
   void _deleteCoach(int index) {
+    final coachToDelete = _coaches[index];
+    
     showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
+      context: context, // 1. This uses the Screen's context
+      builder: (dialogContext) => AlertDialog( // 2. Rename this to avoid confusion!
         title: const Text('Delete Coach'),
-        content: Text('Are you sure you want to delete ${widget.coaches[index].name}?'),
+        content: Text('Are you sure you want to delete ${coachToDelete.name}?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(dialogContext), // Close using dialogContext
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              widget.onCoachDeleted(index);
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Coach deleted successfully!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
+            onPressed: () async {
+              // Close the dialog first
+              Navigator.pop(dialogContext); 
+              
+              try {
+                // Perform the async delete
+                await GymProvider.deleteCoach(coachToDelete);
+                
+                // 3. Safety check: Is the SCREEN still mounted?
+                if (!mounted) return;
+                
+                setState(() {
+                  _coaches.removeAt(index);
+                });
+                
+                // 4. Use 'context' (Screen), NOT 'dialogContext' (Dialog)
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Coach deleted successfully!'),
+                    backgroundColor: Colors.green,
+                  ),
+                );
+              } catch (e) {
+                if (!mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text('Failed to delete coach: $e'),
+                    backgroundColor: Colors.red,
+                  ),
+                );
+              }
             },
             style: TextButton.styleFrom(foregroundColor: Colors.red),
             child: const Text('Delete'),
@@ -71,35 +125,55 @@ class _CoachesListScreenState extends State<CoachesListScreen> {
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
-            onPressed: _addCoach,
+            onPressed: _showAddCoachDialog,
           ),
         ],
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: _addCoach,
+        onPressed: _showAddCoachDialog,
         backgroundColor: Colors.green[700],
         child: const Icon(Icons.add, color: Colors.white),
       ),
-      body: widget.coaches.isEmpty
-          ? const Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(Icons.people, size: 64, color: Colors.grey),
-                  SizedBox(height: 16),
-                  Text('No coaches added yet'),
-                  SizedBox(height: 8),
-                  Text('Tap the + button to add a coach', style: TextStyle(color: Colors.grey)),
-                ],
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: widget.coaches.length,
-              itemBuilder: (context, index) {
-                return _buildCoachCard(widget.coaches[index], index);
-              },
-            ),
+      body: _buildBody(),
+    );
+  }
+
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text('Error: $_error', style: const TextStyle(color: Colors.red)),
+        ),
+      );
+    }
+
+    if (_coaches.isEmpty) {
+      return const Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(Icons.people, size: 64, color: Colors.grey),
+            SizedBox(height: 16),
+            Text('No coaches added yet'),
+            SizedBox(height: 8),
+            Text('Tap the + button to add a coach',
+                style: TextStyle(color: Colors.grey)),
+          ],
+        ),
+      );
+    }
+
+    return ListView.builder(
+      padding: const EdgeInsets.all(16),
+      itemCount: _coaches.length,
+      itemBuilder: (context, index) {
+        return _buildCoachCard(_coaches[index], index);
+      },
     );
   }
 
@@ -109,19 +183,20 @@ class _CoachesListScreenState extends State<CoachesListScreen> {
       child: ListTile(
         leading: CircleAvatar(
           backgroundColor: Colors.green[100],
-          backgroundImage: coach.photo.isNotEmpty 
-              ? FileImage(coach.photo as dynamic)
-              : null,
-          child: coach.photo.isEmpty 
+          backgroundImage:
+              coach.photo.isNotEmpty ? NetworkImage(coach.photo) : null,
+          child: coach.photo.isEmpty
               ? const Icon(Icons.person, color: Colors.green)
               : null,
         ),
-        title: Text(coach.name, style: const TextStyle(fontWeight: FontWeight.bold)),
+        title:
+            Text(coach.name, style: const TextStyle(fontWeight: FontWeight.bold)),
         subtitle: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text('Experience: ${coach.experience}'),
             Text('Specialization: ${coach.specialization}'),
+            Text('Gym ID: ${coach.gymId}', style: const TextStyle(fontSize: 12)),
             Text(
               'Joined: ${_formatDate(coach.joinedDate)}',
               style: TextStyle(fontSize: 12, color: Colors.grey[600]),
@@ -144,10 +219,9 @@ class _CoachesListScreenState extends State<CoachesListScreen> {
   }
 }
 
+// --- AddCoachDialog (Refactored with Gym Dropdown) ---
 class AddCoachDialog extends StatefulWidget {
-  final Function(Coach) onCoachAdded;
-
-  const AddCoachDialog({super.key, required this.onCoachAdded});
+  const AddCoachDialog({super.key});
 
   @override
   State<AddCoachDialog> createState() => _AddCoachDialogState();
@@ -157,9 +231,54 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _experienceController = TextEditingController();
-  final TextEditingController _specializationController = TextEditingController();
-  
+  final TextEditingController _specializationController =
+      TextEditingController();
+
   XFile? _selectedImage;
+  bool _isAdding = false;
+
+  // --- NEW STATE for gym dropdown ---
+  bool _isGymListLoading = true;
+  List<Gym> _availableGyms = [];
+  String? _selectedGymId;
+  String? _ownerId;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAvailableGyms();
+  }
+
+  /// Fetches the user's gyms to populate the dropdown
+  Future<void> _fetchAvailableGyms() async {
+    try {
+      // Use your AuthProvider to get the logged-in user's ID
+      final ownerId = Provider.of<AuthProvider>(context, listen: false).uid;
+      if (ownerId == null || ownerId.isEmpty) {
+        throw Exception("User not logged in.");
+      }
+      _ownerId = ownerId; // Save ownerId for submission
+      
+      final gyms = await GymProvider.fetchGymsByOwner(ownerId);
+      
+      setState(() {
+        _availableGyms = gyms;
+        _isGymListLoading = false;
+      });
+    } catch (e) {
+      print("Error fetching gyms for dialog: $e");
+      setState(() {
+        _isGymListLoading = false;
+      });
+      // Optionally show an error message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Could not load gyms: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   Future<void> _pickImage() async {
     final ImagePicker picker = ImagePicker();
@@ -170,21 +289,53 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
         maxHeight: 400,
         imageQuality: 80,
       );
-      
       if (image != null) {
         setState(() {
           _selectedImage = image;
         });
-        print('Selected coach image: ${image.path}');
       }
     } catch (e) {
       print('Error picking image: $e');
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Failed to pick image'),
-          backgroundColor: Colors.red,
-        ),
+    }
+  }
+
+  Future<void> _submitAddCoach() async {
+    if (!_formKey.currentState!.validate()) return;
+    if (_selectedGymId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a gym.'), backgroundColor: Colors.red));
+      return;
+    }
+
+    setState(() { _isAdding = true; });
+
+    try {
+      if (_ownerId == null) throw Exception("You must be logged in to add a coach.");
+
+      final coach = Coach(
+        cid: DateTime.now().millisecondsSinceEpoch.toString(),
+        gymId: _selectedGymId!,
+        ownerId: _ownerId!,
+        name: _nameController.text,
+        experience: '${_experienceController.text} years',
+        photo: '',
+        specialization: _specializationController.text,
+        joinedDate: DateTime.now(),
       );
+
+      await GymProvider.addCoach(coach, _selectedImage);
+
+      // ⚠️ SAFETY CHECK: If dialog was closed while loading, stop here.
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Coach added successfully!'), backgroundColor: Colors.green));
+      Navigator.pop(context, true);
+    } catch (e) {
+      if (!mounted) return; // Safety check before using context
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Failed to add coach: $e'), backgroundColor: Colors.red));
+    } finally {
+      if (mounted) {
+        setState(() { _isAdding = false; });
+      }
     }
   }
 
@@ -198,7 +349,6 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Coach Photo
               GestureDetector(
                 onTap: _pickImage,
                 child: Container(
@@ -210,10 +360,7 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: _selectedImage != null
-                      ? Image.file(
-                          _selectedImage! as dynamic,
-                          fit: BoxFit.cover,
-                        )
+                      ? Image.file(File(_selectedImage!.path), fit: BoxFit.cover)
                       : const Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
@@ -225,8 +372,38 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
                 ),
               ),
               const SizedBox(height: 16),
-              
-              // Coach Name
+
+              // --- NEW: Gym Selection Dropdown ---
+              _isGymListLoading
+                  ? const Center(child: CircularProgressIndicator())
+                  : DropdownButtonFormField<String>(
+                      value: _selectedGymId,
+                      hint: const Text('Select a Gym'),
+                      isExpanded: true,
+                      decoration: const InputDecoration(
+                        labelText: 'Assign to Gym',
+                        border: OutlineInputBorder(),
+                      ),
+                      items: _availableGyms.map((gym) {
+                        return DropdownMenuItem(
+                          value: gym.gid, // Use the gym's ID
+                          child: Text(gym.name), // Show the gym's name
+                        );
+                      }).toList(),
+                      onChanged: (value) {
+                        setState(() {
+                          _selectedGymId = value;
+                        });
+                      },
+                      validator: (value) {
+                        if (value == null || value.isEmpty) {
+                          return 'Please select a gym';
+                        }
+                        return null;
+                      },
+                    ),
+              const SizedBox(height: 16),
+
               TextFormField(
                 controller: _nameController,
                 decoration: const InputDecoration(
@@ -241,8 +418,6 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
                 },
               ),
               const SizedBox(height: 16),
-              
-              // Years of Experience
               TextFormField(
                 controller: _experienceController,
                 decoration: const InputDecoration(
@@ -258,8 +433,6 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
                 },
               ),
               const SizedBox(height: 16),
-              
-              // Specialization
               TextFormField(
                 controller: _specializationController,
                 decoration: const InputDecoration(
@@ -279,39 +452,21 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
       ),
       actions: [
         TextButton(
-          onPressed: () => Navigator.pop(context),
+          onPressed: _isAdding ? null : () => Navigator.pop(context),
           child: const Text('Cancel'),
         ),
         ElevatedButton(
-          onPressed: () {
-            if (_formKey.currentState!.validate()) {
-              final coach = Coach(
-                id: DateTime.now().millisecondsSinceEpoch.toString(),
-                name: _nameController.text,
-                experience: '${_experienceController.text} years',
-                photo: _selectedImage?.path ?? '',
-                specialization: _specializationController.text,
-                joinedDate: DateTime.now(),
-              );
-              
-              print('Adding Coach:');
-              print('Name: ${coach.name}');
-              print('Experience: ${coach.experience}');
-              print('Specialization: ${coach.specialization}');
-              print('Photo: ${coach.photo}');
-              
-              widget.onCoachAdded(coach);
-              Navigator.pop(context);
-              
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Coach added successfully!'),
-                  backgroundColor: Colors.green,
-                ),
-              );
-            }
-          },
-          child: const Text('Add Coach'),
+          onPressed: _isAdding ? null : _submitAddCoach,
+          child: _isAdding
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    strokeWidth: 2,
+                    color: Colors.white,
+                  ),
+                )
+              : const Text('Add Coach'),
         ),
       ],
     );

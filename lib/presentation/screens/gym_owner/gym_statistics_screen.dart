@@ -1,7 +1,53 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sawa/presentation/providers/auth_provider.dart';
+import 'package:sawa/presentation/providers/gym_provider.dart';
 
-class GymStatisticsScreen extends StatelessWidget {
+class GymStatisticsScreen extends StatefulWidget {
   const GymStatisticsScreen({super.key});
+
+  @override
+  State<GymStatisticsScreen> createState() => _GymStatisticsScreenState();
+}
+
+class _GymStatisticsScreenState extends State<GymStatisticsScreen> {
+  // --- STATE VARIABLES ---
+  bool _isLoading = true;
+  Map<String, dynamic>? _stats;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadStatistics();
+  }
+
+  /// Fetches stats from the static provider
+  Future<void> _loadStatistics() async {
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final ownerId = Provider.of<AuthProvider>(context, listen: false).uid;
+      if (ownerId == null || ownerId.isEmpty) {
+        throw Exception("User is not logged in.");
+      }
+      
+      final stats = await GymProvider.getStatistics(ownerId);
+      
+      setState(() {
+        _stats = stats;
+        _isLoading = false;
+      });
+    } catch (e) {
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,48 +70,79 @@ class GymStatisticsScreen extends StatelessWidget {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            // Overview Cards
-            _buildOverviewCards(),
-            const SizedBox(height: 24),
+      body: _buildBody(),
+    );
+  }
 
-            // Revenue Chart Section
-            _buildRevenueSection(),
-            const SizedBox(height: 24),
+  Widget _buildBody() {
+    if (_isLoading) {
+      return const Center(child: CircularProgressIndicator());
+    }
 
-            // Member Statistics
-            _buildMemberStatsSection(),
-            const SizedBox(height: 24),
-
-            // Popular Times
-            _buildPopularTimesSection(),
-          ],
+    if (_error != null) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text('Error: $_error', style: const TextStyle(color: Colors.red)),
         ),
+      );
+    }
+    
+    if (_stats == null) {
+      return const Center(child: Text('No statistics data found.'));
+    }
+
+    // Extract real data
+    final double totalRevenue = _stats!['totalMonthlyRevenue'] ?? 0.0;
+    final String activeMembers = (_stats!['activeMembers'] ?? 0).toString(); // Still demo
+
+    return SingleChildScrollView(
+      padding: const EdgeInsets.all(16.0),
+      child: Column(
+        children: [
+          // Overview Cards
+          _buildOverviewCards(
+            totalRevenue: totalRevenue,
+            activeMembers: activeMembers,
+          ),
+          const SizedBox(height: 24),
+
+          // Revenue Chart Section
+          _buildRevenueSection(totalRevenue: totalRevenue),
+          const SizedBox(height: 24),
+
+          // Member Statistics (Still demo data)
+          _buildMemberStatsSection(),
+          const SizedBox(height: 24),
+
+          // Popular Times (Still demo data)
+          _buildPopularTimesSection(),
+        ],
       ),
     );
   }
 
-  Widget _buildOverviewCards() {
-    return const Row(
+  Widget _buildOverviewCards({
+    required double totalRevenue,
+    required String activeMembers,
+  }) {
+    return Row(
       children: [
         Expanded(
           child: _StatCard(
-            title: 'Total Revenue',
-            value: '\$12,458',
-            change: '+12%',
+            title: 'Total Monthly Revenue', // Title clarified
+            value: '\$${totalRevenue.toStringAsFixed(2)}', // Use real data
+            change: '+12%', // Demo
             isPositive: true,
             icon: Icons.attach_money,
           ),
         ),
-        SizedBox(width: 12),
+        const SizedBox(width: 12),
         Expanded(
           child: _StatCard(
             title: 'Active Members',
-            value: '324',
-            change: '+8%',
+            value: activeMembers, // Use real data (from demo)
+            change: '+8%', // Demo
             isPositive: true,
             icon: Icons.people,
           ),
@@ -74,7 +151,7 @@ class GymStatisticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildRevenueSection() {
+  Widget _buildRevenueSection({required double totalRevenue}) {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -98,6 +175,7 @@ class GymStatisticsScreen extends StatelessWidget {
                 borderRadius: BorderRadius.circular(8),
               ),
               child: const Center(
+                // This would be replaced with a chart package
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
@@ -110,12 +188,15 @@ class GymStatisticsScreen extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 16),
-            const Row(
+            Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
               children: [
-                _MiniStatItem(label: 'This Week', value: '\$2,850'),
-                _MiniStatItem(label: 'This Month', value: '\$12,458'),
-                _MiniStatItem(label: 'This Year', value: '\$89,124'),
+                const _MiniStatItem(label: 'This Week', value: '\$2,850'), // Demo
+                _MiniStatItem(
+                  label: 'This Month',
+                  value: '\$${totalRevenue.toStringAsFixed(2)}', // Use real data
+                ),
+                const _MiniStatItem(label: 'This Year', value: '\$89,124'), // Demo
               ],
             ),
           ],
@@ -123,7 +204,9 @@ class GymStatisticsScreen extends StatelessWidget {
       ),
     );
   }
-
+  
+  // --- All other builder methods (_buildMemberStatsSection, _buildPopularTimesSection, etc.) ---
+  // --- are unchanged as they still use demo data. ---
   Widget _buildMemberStatsSection() {
     return Card(
       elevation: 2,
@@ -226,6 +309,7 @@ class GymStatisticsScreen extends StatelessWidget {
   }
 }
 
+// --- Helper widgets (_StatCard, _MiniStatItem) are unchanged ---
 class _StatCard extends StatelessWidget {
   final String title;
   final String value;
