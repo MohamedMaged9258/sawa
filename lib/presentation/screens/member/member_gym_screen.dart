@@ -1,5 +1,10 @@
 // lib/presentation/screens/member/member_gym_screen.dart
+
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:sawa/presentation/providers/auth_provider.dart';
+import 'package:sawa/presentation/providers/member_provider.dart';
+import 'package:sawa/presentation/models/gym_owner_models.dart'; // Using the Gym model
 
 class MemberGymScreen extends StatefulWidget {
   const MemberGymScreen({super.key});
@@ -9,103 +14,124 @@ class MemberGymScreen extends StatefulWidget {
 }
 
 class _MemberGymScreenState extends State<MemberGymScreen> {
-  final List<Gym> _gyms = [
-    Gym(
-      id: '1',
-      name: 'Premium Fitness Center',
-      location: '123 Main Street, City Center',
-      price: 49.99,
-      rating: 4.8,
-      image: '',
-      facilities: ['Pool', 'Sauna', 'Parking', 'Personal Trainers'],
-      distance: '1.2 km',
-    ),
-    Gym(
-      id: '2',
-      name: 'Elite Strength Gym',
-      location: '456 Fitness Avenue, Downtown',
-      price: 69.99,
-      rating: 4.9,
-      image: '',
-      facilities: ['Heavy Weights', 'CrossFit Area', 'Supplements Shop'],
-      distance: '2.5 km',
-    ),
-    Gym(
-      id: '3',
-      name: 'Community Workout Space',
-      location: '789 Health Road, Uptown',
-      price: 39.99,
-      rating: 4.5,
-      image: '',
-      facilities: ['Yoga Studio', 'Cardio Zone', 'Group Classes'],
-      distance: '0.8 km',
-    ),
-  ];
+  List<Gym> _gyms = [];
+  List<Gym> _filteredGyms = []; // For search
+  bool _isLoading = true;
+  String? _error;
 
-  String _selectedFilter = 'All';
+  @override
+  void initState() {
+    super.initState();
+    _fetchGyms();
+  }
+
+  Future<void> _fetchGyms() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final gyms = await MemberProvider.fetchAllGyms();
+      if (!mounted) return;
+      setState(() {
+        _gyms = gyms;
+        _filteredGyms = gyms;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _filterGyms(String query) {
+    setState(() {
+      if (query.isEmpty) {
+        _filteredGyms = _gyms;
+      } else {
+        _filteredGyms = _gyms
+            .where(
+              (gym) =>
+                  gym.name.toLowerCase().contains(query.toLowerCase()) ||
+                  gym.location.toLowerCase().contains(query.toLowerCase()),
+            )
+            .toList();
+      }
+    });
+  }
+
+  Future<void> _bookGym(Gym gym) async {
+    try {
+      final memberId = Provider.of<AuthProvider>(context, listen: false).uid;
+      if (memberId == null) throw Exception("User not logged in");
+
+      // For simplicity, booking for "Today"
+      await MemberProvider.bookGym(
+        memberId: memberId,
+        gym: gym,
+        date: DateTime.now(),
+      );
+
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Booked session at ${gym.name}!'),
+          backgroundColor: Colors.green,
+        ),
+      );
+      Navigator.pop(context); // Close dialog
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Booking failed: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       body: Column(
         children: [
-          // Search and Filter Section
+          // Search Section
           Padding(
             padding: const EdgeInsets.all(16.0),
-            child: Column(
-              children: [
-                // Search Bar
-                TextField(
-                  decoration: InputDecoration(
-                    hintText: 'Search gyms...',
-                    prefixIcon: const Icon(Icons.search),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                  ),
+            child: TextField(
+              decoration: InputDecoration(
+                hintText: 'Search gyms...',
+                prefixIcon: const Icon(Icons.search),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                const SizedBox(height: 16),
-                // Filter Chips
-                SingleChildScrollView(
-                  scrollDirection: Axis.horizontal,
-                  child: Row(
-                    children: [
-                      _buildFilterChip('All', 'All'),
-                      _buildFilterChip('Nearby', 'Nearby'),
-                      _buildFilterChip('Premium', 'Premium'),
-                      _buildFilterChip('Budget', 'Budget'),
-                      _buildFilterChip('24/7', '24/7'),
-                    ],
-                  ),
-                ),
-              ],
+              ),
+              onChanged: _filterGyms,
             ),
           ),
+
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: _gyms.length,
-              itemBuilder: (context, index) {
-                return _buildGymCard(_gyms[index]);
-              },
-            ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _error != null
+                ? Center(child: Text('Error: $_error'))
+                : _filteredGyms.isEmpty
+                ? const Center(child: Text('No gyms found.'))
+                : ListView.builder(
+                    padding: const EdgeInsets.all(16),
+                    itemCount: _filteredGyms.length,
+                    itemBuilder: (context, index) {
+                      return _buildGymCard(_filteredGyms[index]);
+                    },
+                  ),
           ),
         ],
-      ),
-    );
-  }
-
-  Widget _buildFilterChip(String label, String value) {
-    return Padding(
-      padding: const EdgeInsets.only(right: 8.0),
-      child: FilterChip(
-        label: Text(label),
-        selected: _selectedFilter == value,
-        onSelected: (selected) {
-          setState(() {
-            _selectedFilter = value;
-          });
-        },
       ),
     );
   }
@@ -129,8 +155,20 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
                   decoration: BoxDecoration(
                     color: Colors.green[100],
                     borderRadius: BorderRadius.circular(8),
+                    image: gym.photo.isNotEmpty
+                        ? DecorationImage(
+                            image: NetworkImage(gym.photo),
+                            fit: BoxFit.cover,
+                          )
+                        : null,
                   ),
-                  child: const Icon(Icons.fitness_center, size: 40, color: Colors.green),
+                  child: gym.photo.isEmpty
+                      ? const Icon(
+                          Icons.fitness_center,
+                          size: 40,
+                          color: Colors.green,
+                        )
+                      : null,
                 ),
                 const SizedBox(width: 16),
                 Expanded(
@@ -147,37 +185,31 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
                       const SizedBox(height: 4),
                       Row(
                         children: [
-                          Icon(Icons.location_on, color: Colors.red[500], size: 16),
+                          Icon(
+                            Icons.location_on,
+                            color: Colors.red[500],
+                            size: 16,
+                          ),
                           const SizedBox(width: 4),
                           Expanded(
                             child: Text(
                               gym.location,
                               style: TextStyle(color: Colors.grey[600]),
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
                             ),
                           ),
                         ],
                       ),
                       const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(Icons.directions_walk, color: Colors.blue[500], size: 16),
-                          const SizedBox(width: 4),
-                          Text(
-                            gym.distance,
-                            style: TextStyle(color: Colors.grey[600]),
-                          ),
-                          const Spacer(),
-                          Row(
-                            children: [
-                              Icon(Icons.star, color: Colors.amber[600], size: 16),
-                              const SizedBox(width: 4),
-                              Text(
-                                gym.rating.toString(),
-                                style: const TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                            ],
-                          ),
-                        ],
+                      // Price
+                      Text(
+                        '\$${gym.pricePerMonth.toStringAsFixed(2)}/month',
+                        style: const TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green,
+                        ),
                       ),
                     ],
                   ),
@@ -185,41 +217,19 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
               ],
             ),
             const SizedBox(height: 12),
-            // Facilities
-            Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              children: gym.facilities.take(3).map((facility) {
-                return Chip(
-                  label: Text(facility),
-                  backgroundColor: Colors.blue[50],
-                  labelStyle: const TextStyle(fontSize: 12),
-                );
-              }).toList(),
-            ),
-            const SizedBox(height: 12),
-            // Price and Book Button
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  '\$${gym.price.toStringAsFixed(2)}/month',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.green,
-                  ),
+
+            SizedBox(
+              width: double.infinity,
+              child: ElevatedButton(
+                onPressed: () => _showBookingDialog(gym),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.green[700],
                 ),
-                ElevatedButton(
-                  onPressed: () {
-                    _showBookingDialog(gym);
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.green[700],
-                  ),
-                  child: const Text('Book Now'),
+                child: const Text(
+                  'Book Now',
+                  style: TextStyle(color: Colors.white),
                 ),
-              ],
+              ),
             ),
           ],
         ),
@@ -230,67 +240,33 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
   void _showBookingDialog(Gym gym) {
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text('Book ${gym.name}'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('Select booking details:'),
+            const Text('Confirm booking for today?'),
             const SizedBox(height: 16),
-            DropdownButtonFormField<String>(
-              decoration: const InputDecoration(
-                labelText: 'Membership Type',
-                border: OutlineInputBorder(),
-              ),
-              items: const [
-                DropdownMenuItem(value: 'basic', child: Text('Basic - 1 Month')),
-                DropdownMenuItem(value: 'premium', child: Text('Premium - 3 Months')),
-                DropdownMenuItem(value: 'vip', child: Text('VIP - 6 Months')),
-              ],
-              onChanged: (value) {},
-            ),
-            const SizedBox(height: 16),
-            ElevatedButton(
-              onPressed: () {
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Successfully booked ${gym.name}!'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
-              },
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.green[700],
-                minimumSize: const Size(double.infinity, 50),
-              ),
-              child: const Text('Confirm Booking'),
-            ),
+            // In a real app, you would add a date picker here
+            Text('Date: ${_formatDate(DateTime.now())}'),
           ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => _bookGym(gym), // Call the actual booking method
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700]),
+            child: const Text('Confirm', style: TextStyle(color: Colors.white)),
+          ),
+        ],
       ),
     );
   }
-}
 
-class Gym {
-  String id;
-  String name;
-  String location;
-  double price;
-  double rating;
-  String image;
-  List<String> facilities;
-  String distance;
-
-  Gym({
-    required this.id,
-    required this.name,
-    required this.location,
-    required this.price,
-    required this.rating,
-    required this.image,
-    required this.facilities,
-    required this.distance,
-  });
+  String _formatDate(DateTime d) {
+    return "${d.day}/${d.month}/${d.year}";
+  }
 }

@@ -1,7 +1,12 @@
 // lib/presentation/screens/member/member_home_screen.dart
+
+// ignore_for_file: deprecated_member_use
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
+import 'package:sawa/presentation/providers/member_provider.dart'; // NEW
+import 'package:sawa/presentation/models/member_models.dart'; // NEW
 import '../member/member_gym_screen.dart';
 import '../member/member_restaurant_screen.dart';
 import '../member/member_nutritionist_screen.dart';
@@ -16,8 +21,9 @@ class MemberHomeScreen extends StatefulWidget {
 class _MemberHomeScreenState extends State<MemberHomeScreen> {
   int _currentIndex = 0;
 
+  // We will pass the current stats to the DashboardScreen
   final List<Widget> _screens = [
-    const DashboardScreen(),
+    const DashboardScreen(), // This will now handle its own data fetching or be re-built
     const MemberGymScreen(),
     const MemberRestaurantScreen(),
     const MemberNutritionistScreen(),
@@ -33,13 +39,6 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
         elevation: 0,
         actions: [
           IconButton(
-            icon: const Icon(Icons.person),
-            onPressed: () {
-              // Profile screen
-            },
-            tooltip: 'Profile',
-          ),
-          IconButton(
             icon: const Icon(Icons.logout),
             onPressed: () {
               Provider.of<AuthProvider>(context, listen: false).logout();
@@ -53,7 +52,9 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
           ),
         ],
       ),
-      body: _screens[_currentIndex],
+      body: _currentIndex == 0
+          ? const DashboardScreen() // Re-instantiate to trigger initState/fetch
+          : _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
         onTap: (index) => setState(() => _currentIndex = index),
@@ -84,145 +85,214 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
   }
 }
 
-class DashboardScreen extends StatelessWidget {
+class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
 
   @override
+  State<DashboardScreen> createState() => _DashboardScreenState();
+}
+
+class _DashboardScreenState extends State<DashboardScreen> {
+  bool _isLoading = true;
+  Map<String, dynamic> _stats = {};
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchStats();
+  }
+
+  Future<void> _fetchStats() async {
+    if (!mounted) return;
+    setState(() {
+      _isLoading = true;
+      _error = null;
+    });
+
+    try {
+      final memberId = Provider.of<AuthProvider>(context, listen: false).uid;
+      if (memberId == null) throw Exception("User not logged in.");
+
+      final stats = await MemberProvider.getMemberStats(memberId);
+
+      if (!mounted) return;
+      setState(() {
+        _stats = stats;
+        _isLoading = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _error = e.toString();
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.all(16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Welcome Section
-          Consumer<AuthProvider>(
-            builder: (context, authProvider, child) {
-              return Card(
-                elevation: 2,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 60,
-                        height: 60,
-                        decoration: BoxDecoration(
-                          color: Colors.blue[100],
-                          shape: BoxShape.circle,
-                        ),
-                        child: Icon(
-                          Icons.person,
-                          size: 32,
-                          color: Colors.blue[700],
-                        ),
-                      ),
-                      const SizedBox(width: 16),
-                      Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'Welcome Back, ${authProvider.name ?? "Member"}!',
-                              style: TextStyle(
-                                fontSize: 18,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.grey[800],
-                              ),
-                            ),
-                            const SizedBox(height: 4),
-                            Text(
-                              'Stay fit and healthy with SAWA',
-                              style: TextStyle(
-                                fontSize: 14,
-                                color: Colors.grey[600],
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
+    if (_isLoading) return const Center(child: CircularProgressIndicator());
+    if (_error != null) return Center(child: Text('Error: $_error'));
+
+    // Extract data safely
+    final int gymVisits = _stats['gymVisits'] ?? 0;
+    final int mealsOrdered = _stats['mealsOrdered'] ?? 0;
+    final Booking? nextAppt = _stats['nextAppointment'];
+    final FoodOrder? lastOrder = _stats['lastOrder'];
+
+    return RefreshIndicator(
+      onRefresh: _fetchStats,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(16.0),
+        physics: const AlwaysScrollableScrollPhysics(),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Welcome Section
+            Consumer<AuthProvider>(
+              builder: (context, authProvider, child) {
+                return Card(
+                  elevation: 2,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
                   ),
+                  child: Padding(
+                    padding: const EdgeInsets.all(16.0),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            color: Colors.blue[100],
+                            shape: BoxShape.circle,
+                          ),
+                          child: Icon(
+                            Icons.person,
+                            size: 32,
+                            color: Colors.blue[700],
+                          ),
+                        ),
+                        const SizedBox(width: 16),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Welcome Back, ${authProvider.name ?? "Member"}!',
+                                style: TextStyle(
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                'Stay fit and healthy with SAWA',
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  color: Colors.grey[600],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 24),
+
+            // Quick Stats
+            const Text(
+              'Quick Stats',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+            GridView.count(
+              shrinkWrap: true,
+              physics: const NeverScrollableScrollPhysics(),
+              crossAxisCount: 2,
+              crossAxisSpacing: 16,
+              mainAxisSpacing: 16,
+              children: [
+                _buildStatCard(
+                  'Gym Visits',
+                  gymVisits.toString(),
+                  Icons.fitness_center,
+                  Colors.green,
                 ),
-              );
-            },
-          ),
-          const SizedBox(height: 24),
+                _buildStatCard(
+                  'Meals Ordered',
+                  mealsOrdered.toString(),
+                  Icons.restaurant,
+                  Colors.orange,
+                ),
+                // Placeholder for Nutritionist stats until fully implemented
+                _buildStatCard(
+                  'Nutritionist Sessions',
+                  '0',
+                  Icons.medical_services,
+                  Colors.purple,
+                ),
+                _buildStatCard(
+                  'Active Plans',
+                  '0',
+                  Icons.assignment,
+                  Colors.blue,
+                ),
+              ],
+            ),
+            const SizedBox(height: 24),
 
-          // Quick Stats
-          const Text(
-            'Quick Stats',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          GridView.count(
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            crossAxisCount: 2,
-            crossAxisSpacing: 16,
-            mainAxisSpacing: 16,
-            children: [
-              _buildStatCard(
-                'Gym Visits',
-                '12',
-                Icons.fitness_center,
-                Colors.green,
-              ),
-              _buildStatCard(
-                'Meals Ordered',
-                '8',
-                Icons.restaurant,
-                Colors.orange,
-              ),
-              _buildStatCard(
-                'Nutritionist Sessions',
-                '3',
-                Icons.medical_services,
-                Colors.purple,
-              ),
-              _buildStatCard(
-                'Active Plans',
-                '2',
-                Icons.assignment,
-                Colors.blue,
-              ),
-            ],
-          ),
-          const SizedBox(height: 24),
+            // Upcoming Appointments
+            const Text(
+              'Next Appointment',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
 
-          // Upcoming Appointments
-          const Text(
-            'Upcoming Appointments',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          _buildAppointmentCard(
-            'Nutritionist Consultation',
-            'Dr. Sarah Johnson',
-            'Tomorrow, 10:00 AM',
-            Icons.medical_services,
-            Colors.purple,
-          ),
-          const SizedBox(height: 12),
-          _buildAppointmentCard(
-            'Gym Session',
-            'Premium Fitness Center',
-            'Today, 6:00 PM',
-            Icons.fitness_center,
-            Colors.green,
-          ),
-          const SizedBox(height: 24),
+            if (nextAppt != null)
+              _buildAppointmentCard(
+                nextAppt.serviceName,
+                nextAppt.type,
+                _formatDate(nextAppt.date),
+                nextAppt.type == 'Gym'
+                    ? Icons.fitness_center
+                    : Icons.medical_services,
+                nextAppt.type == 'Gym' ? Colors.green : Colors.purple,
+              )
+            else
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text("No upcoming appointments."),
+                ),
+              ),
 
-          // Last Meal
-          const Text(
-            'Last Meal Ordered',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 16),
-          _buildLastMealCard(),
-        ],
+            const SizedBox(height: 24),
+
+            // Last Meal
+            const Text(
+              'Last Meal Ordered',
+              style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 16),
+
+            if (lastOrder != null)
+              _buildLastMealCard(lastOrder)
+            else
+              const Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Text("No past orders."),
+                ),
+              ),
+          ],
+        ),
       ),
     );
   }
@@ -317,19 +387,13 @@ class DashboardScreen extends StatelessWidget {
                 ],
               ),
             ),
-            IconButton(
-              icon: const Icon(Icons.notifications, color: Colors.orange),
-              onPressed: () {
-                // Set reminder
-              },
-            ),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildLastMealCard() {
+  Widget _buildLastMealCard(FoodOrder order) {
     return Card(
       elevation: 2,
       child: Padding(
@@ -354,66 +418,38 @@ class DashboardScreen extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Grilled Chicken Salad',
-                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  Text(
+                    order.mealName,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
-                    'Healthy Bites Restaurant',
+                    order.restaurantName,
                     style: TextStyle(fontSize: 14, color: Colors.grey[600]),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
-                    'Ordered: Yesterday, 7:30 PM',
-                    style: TextStyle(fontSize: 12, color: Colors.green),
+                  Text(
+                    'Ordered: ${_formatDate(order.date)}',
+                    style: const TextStyle(fontSize: 12, color: Colors.green),
                   ),
                   const SizedBox(height: 8),
-                  Row(
-                    children: [
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.green.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          '550 calories',
-                          style: TextStyle(fontSize: 12, color: Colors.green),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 8,
-                          vertical: 4,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Colors.blue.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: const Text(
-                          'High Protein',
-                          style: TextStyle(fontSize: 12, color: Colors.blue),
-                        ),
-                      ),
-                    ],
+                  Text(
+                    '\$${order.price.toStringAsFixed(2)}',
+                    style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ],
               ),
-            ),
-            IconButton(
-              icon: const Icon(Icons.reorder, color: Colors.grey),
-              onPressed: () {
-                // View order details
-              },
             ),
           ],
         ),
       ),
     );
+  }
+
+  String _formatDate(DateTime d) {
+    return "${d.day}/${d.month}/${d.year}";
   }
 }
