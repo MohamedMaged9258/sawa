@@ -10,7 +10,7 @@ import 'package:sawa/presentation/screens/home/nutrionist_home_screen.dart';
 import 'package:sawa/presentation/screens/home/restaurant_owner_home_screen.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
-
+// test rule set
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Firebase.initializeApp(
