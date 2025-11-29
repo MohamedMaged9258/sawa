@@ -1,11 +1,11 @@
-// lib/presentation/screens/nutritionist/nutrionist_home_screen.dart
-
-// ignore_for_file: deprecated_member_use
+// lib/presentation/screens/home/nutrionist_home_screen.dart
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
 import 'package:sawa/presentation/providers/nutritionist_provider.dart';
+
+// Ensure these imports are correct based on your file structure
 import '../nutritionist/consultation_screen.dart';
 import '../nutritionist/clients_screen.dart';
 import '../nutritionist/plans_screen.dart';
@@ -20,21 +20,13 @@ class NutritionistHomeScreen extends StatefulWidget {
 class _NutritionistHomeScreenState extends State<NutritionistHomeScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const DashboardScreen(),
-    const ClientsScreen(),
-    const PlansScreen(),
-    const ConsultationScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      // FIX: Changed from IndexedStack to a direct build method.
+      // This prevents the app from crashing on login if one of the hidden screens has an error.
+      body: _buildBody(),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -79,7 +71,25 @@ class _NutritionistHomeScreenState extends State<NutritionistHomeScreen> {
       ),
     );
   }
+
+  /// Only builds the screen currently selected.
+  Widget _buildBody() {
+    switch (_currentIndex) {
+      case 0:
+        return const DashboardScreen();
+      case 1:
+        return const ClientsScreen();
+      case 2:
+        return const PlansScreen();
+      case 3:
+        return const ConsultationScreen();
+      default:
+        return const DashboardScreen();
+    }
+  }
 }
+
+// --- DASHBOARD SCREEN ---
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -112,6 +122,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         throw Exception("User ID not available.");
       }
 
+      // Static call is correct here
       final stats = await NutritionistProvider.getStatistics(ownerId);
 
       if (!mounted) return;
@@ -136,14 +147,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (_error != null) {
       return Center(
-        child: Text(
-          'Error loading dashboard: $_error',
-          style: const TextStyle(color: Colors.red),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Text(
+            'Error loading dashboard: $_error',
+            style: const TextStyle(color: Colors.red),
+            textAlign: TextAlign.center,
+          ),
         ),
       );
     }
 
-    // --- Safe Data Parsing for Real Revenue ---
+    // --- Safe Data Parsing ---
     final monthlyRevenue = (_stats['monthlyRevenue'] is num) 
         ? (_stats['monthlyRevenue'] as num).toDouble() 
         : 0.0;
@@ -193,12 +208,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         Icons.chat,
                         Colors.orange,
                       ),
-                      // Real Revenue Card
                       _buildStatCard(
                         'Revenue',
                         '\$${monthlyRevenue.toStringAsFixed(2)}',
                         Icons.attach_money,
-                        Colors.blue, // Kept consistent with Blue theme
+                        Colors.blue,
                       ),
                     ],
                   ),
