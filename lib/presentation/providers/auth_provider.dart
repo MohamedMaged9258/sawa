@@ -9,6 +9,7 @@ class AuthProvider with ChangeNotifier {
 
   User? _user;
   bool _isLoading = false;
+  String? _errorMessage;
 
   String? _currentUserRole;
   String? _name;
@@ -18,6 +19,7 @@ class AuthProvider with ChangeNotifier {
 
   User? get user => _user;
   bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
   String? get currentUserRole => _currentUserRole;
   String? get name => _name;
   String? get email => _email;
@@ -27,6 +29,11 @@ class AuthProvider with ChangeNotifier {
     _authStateSubscription = _auth.authStateChanges().listen(
       _onAuthStateChanged,
     );
+  }
+
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
   }
 
   Future<void> _onAuthStateChanged(User? user) async {
@@ -64,6 +71,7 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> login(String email, String password) async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
@@ -72,26 +80,12 @@ class AuthProvider with ChangeNotifier {
       // This helps ensure currentUserRole is set before the UI tries to use it.
       await Future.delayed(const Duration(milliseconds: 500));
     } on FirebaseAuthException catch (e) {
-      String errorMessage = 'An error occurred';
-      if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
-        errorMessage = 'Invalid email or password.';
-      } else if (e.code == 'wrong-password') {
-        errorMessage = 'Invalid email or password.';
-      } else if (e.code == 'invalid-email') {
-        errorMessage = 'The email address is invalid.';
-      } else if (e.code == 'user-disabled') {
-        errorMessage = 'This user account has been disabled.';
-      } else if (e.code == 'too-many-requests') {
-        errorMessage = 'Too many attempts. Try again later.';
-      }
-      debugPrint("Firebase login error: $errorMessage");
-      throw errorMessage;
-    } catch (e) {
-      throw 'An unexpected error occurred. Please try again.';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      debugPrint("Firebase login error: ${e.message}");
+      // Here you could set an error message to show in the UI
     }
+
+    _isLoading = false;
+    notifyListeners();
   }
 
   Future<void> register({
@@ -101,6 +95,7 @@ class AuthProvider with ChangeNotifier {
     required String role,
   }) async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
@@ -115,39 +110,48 @@ class AuthProvider with ChangeNotifier {
         'createdAt': Timestamp.now(),
       });
     } on FirebaseAuthException catch (e) {
-      String errorMessage = 'Registration failed';
-      if (e.code == 'weak-password') {
-        errorMessage = 'The password provided is too weak.';
-      } else if (e.code == 'email-already-in-use') {
-        errorMessage = 'The account already exists for that email.';
-      } else if (e.code == 'invalid-email') {
-        errorMessage = 'The email address is invalid.';
-      }
-      debugPrint("Firebase register error: $errorMessage");
-      throw errorMessage;
-    } catch (e) {
-      throw 'An unexpected error occurred. Please try again.';
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      debugPrint("Firebase register error: ${e.message}");
+      // Here you could set an error message to show in the UI
     }
+
+    _isLoading = false;
+    notifyListeners();
   }
 
   Future<void> resetPassword(String email) async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
       await _auth.sendPasswordResetEmail(email: email);
     } on FirebaseAuthException catch (e) {
-      String errorMessage = 'Reset password failed';
-      if (e.code == 'user-not-found') {
-        errorMessage = 'No user found for that email.';
-      }
-      throw errorMessage;
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+      debugPrint("Firebase password reset error: ${e.message}");
+      rethrow; // Rethrow the exception to be caught in the UI
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  String _mapFirebaseAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'invalid-email':
+        return 'The email address is badly formatted.';
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      case 'user-not-found':
+        return 'No user found with this email.';
+      case 'wrong-password':
+        return 'Incorrect password.';
+      case 'email-already-in-use':
+        return 'An account already exists with this email.';
+      case 'operation-not-allowed':
+        return 'This operation is not allowed.';
+      case 'weak-password':
+        return 'The password is too weak.';
+      default:
+        return e.message ?? 'An unknown error occurred.';
     }
   }
 

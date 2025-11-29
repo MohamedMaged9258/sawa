@@ -81,8 +81,11 @@ class _LoginScreenState extends State<LoginScreen> {
                   controller: _emailController,
                   labelText: 'Email',
                   prefixIcon: Icons.person,
+                  keyboardType: TextInputType.emailAddress,
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Please Enter Email';
+                    if (value == null || value.isEmpty) {
+                      return 'Please Enter Email';
+                    }
                     return null;
                   },
                 ),
@@ -93,11 +96,35 @@ class _LoginScreenState extends State<LoginScreen> {
                   prefixIcon: Icons.lock,
                   obscureText: true,
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Please enter password';
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter password';
+                    }
+                    if (value.length < 6) {
+                      return 'Password must be at least 6 characters';
+                    }
                     return null;
                   },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+                // Error message display
+                Consumer<AuthProvider>(
+                  builder: (context, authProvider, child) {
+                    if (authProvider.errorMessage != null) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Text(
+                          authProvider.errorMessage!,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
                 Consumer<AuthProvider>(
                   builder: (context, authProvider, child) {
                     // Logic to handle redirection
@@ -110,7 +137,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     return CustomButton(
                       text: 'Login',
                       isLoading: authProvider.isLoading,
-                      onPressed: () => _handleLogin(authProvider),
+                      onPressed: () {
+                        if (_formKey.currentState!.validate()) {
+                          authProvider.login(
+                            _emailController.text.trim(),
+                            _passwordController.text.trim(),
+                          );
+                        }
+                      },
                     );
                   },
                 ),

@@ -30,7 +30,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Password reset email sent successfully!'),
+            content: Text('Password reset email sent successfully! Check your inbox.'),
             backgroundColor: Colors.green,
           ),
         );
@@ -39,13 +39,35 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
     } catch (e) {
       // Catch String error thrown from Provider
       if (mounted) {
+        String errorMessage = _mapFirebaseAuthError(e);
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text(e.toString()),
+            content: Text(errorMessage),
             backgroundColor: Colors.red,
           ),
         );
       }
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('An unexpected error occurred. Please try again.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  String _mapFirebaseAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'invalid-email':
+        return 'The email address is badly formatted.';
+      case 'user-not-found':
+        return 'No user found with this email address.';
+      default:
+        return e.message ?? 'An unknown error occurred.';
     }
   }
 
@@ -79,11 +101,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     const SizedBox(height: 32),
                     CustomTextField(
                       controller: _emailController,
-                      labelText: 'Email',
+                      labelText: 'Email Address',
                       prefixIcon: Icons.email,
+                      keyboardType: TextInputType.emailAddress,
                       validator: (value) {
                         if (value == null || value.isEmpty) return 'Please enter your email';
                         if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) return 'Please enter a valid email';
+                        if (value == null || value.isEmpty) {
+                          return 'Please enter your email address';
+                        }
+                        if (!RegExp(
+                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                        ).hasMatch(value)) {
+                          return 'Please enter a valid email address';
+                        }
                         return null;
                       },
                     ),
@@ -91,6 +122,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     CustomButton(
                       text: 'Send Reset Link',
                       isLoading: authProvider.isLoading, // Use provider loading state
+                      isLoading: authProvider.isLoading,
                       onPressed: () => _resetPassword(context),
                     ),
                     const SizedBox(height: 16),

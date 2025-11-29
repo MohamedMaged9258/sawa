@@ -131,18 +131,30 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 24),
                 CustomTextField(
                   controller: _nameController,
-                  labelText: 'Name',
+                  labelText: 'Full Name',
                   prefixIcon: Icons.person_outline,
-                  validator: (value) => (value == null || value.isEmpty) ? 'Please Enter Name' : null,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Please Enter Name';
+                    }
+                    return null;
+                  },
                 ),
                 const SizedBox(height: 16),
                 CustomTextField(
                   controller: _emailController,
-                  labelText: 'Email',
+                  labelText: 'Email Address',
                   prefixIcon: Icons.email,
+                  keyboardType: TextInputType.emailAddress,
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Please enter email';
-                    if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) return 'Please enter a valid email';
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter email';
+                    }
+                    if (!RegExp(
+                      r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
+                    ).hasMatch(value)) {
+                      return 'Please enter a valid email';
+                    }
                     return null;
                   },
                 ),
@@ -153,8 +165,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   prefixIcon: Icons.lock,
                   obscureText: true,
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Please enter password';
-                    if (value.length < 6) return 'Password must be at least 6 characters';
+                    if (value == null || value.isEmpty) {
+                      return 'Please enter password';
+                    }
+                    if (value.length < 6) {
+                      return 'Password must be at least 6 characters';
+                    }
                     return null;
                   },
                 ),
@@ -165,12 +181,35 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   prefixIcon: Icons.lock_outline,
                   obscureText: true,
                   validator: (value) {
-                    if (value == null || value.isEmpty) return 'Please confirm password';
-                    if (value != _passwordController.text) return 'Passwords do not match';
+                    if (value == null || value.isEmpty) {
+                      return 'Please confirm password';
+                    }
+                    if (value != _passwordController.text) {
+                      return 'Passwords do not match';
+                    }
                     return null;
                   },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+                // Error message display
+                Consumer<AuthProvider>(
+                  builder: (context, authProvider, child) {
+                    if (authProvider.errorMessage != null) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Text(
+                          authProvider.errorMessage!,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
                 Consumer<AuthProvider>(
                   builder: (context, authProvider, child) {
                     if (authProvider.currentUserRole != null && !authProvider.isLoading && authProvider.user != null) {
@@ -181,7 +220,18 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return CustomButton(
                       text: 'Create Account',
                       isLoading: authProvider.isLoading,
-                      onPressed: () => _handleRegister(authProvider),
+                      onPressed: _selectedRole == null
+                          ? null
+                          : () {
+                              if (_formKey.currentState!.validate()) {
+                                authProvider.register(
+                                  email: _emailController.text.trim(),
+                                  name: _nameController.text.trim(),
+                                  password: _passwordController.text.trim(),
+                                  role: _selectedRole!,
+                                );
+                              }
+                            },
                     );
                   },
                 ),
