@@ -21,18 +21,8 @@ import 'meal_plan_flow_test.mocks.dart';
 ])
 void main() {
   group('Meal Plan Flow Integration', () {
-    late MockFirebaseFirestore mockFirestore;
-    late MockCollectionReference mockPlansCollection;
-    late MockCollectionReference mockClientsCollection;
-    late MockQuery mockQuery;
-    late MockQuerySnapshot mockQuerySnapshot;
-
     setUp(() {
-      mockFirestore = MockFirebaseFirestore();
-      mockPlansCollection = MockCollectionReference();
-      mockClientsCollection = MockCollectionReference();
-      mockQuery = MockQuery();
-      mockQuerySnapshot = MockQuerySnapshot();
+      // Setup can be done here if needed
     });
 
     test('Nutritionist can create meal plan for member', () async {

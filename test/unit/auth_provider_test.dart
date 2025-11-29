@@ -11,13 +11,8 @@ import 'auth_provider_test.mocks.dart';
 void main() {
   group('AuthProvider', () {
     late AuthProvider authProvider;
-    late MockFirebaseAuth mockAuth;
-    late MockFirebaseFirestore mockFirestore;
 
     setUp(() {
-      mockAuth = MockFirebaseAuth();
-      mockFirestore = MockFirebaseFirestore();
-      
       // We need to mock the static instances
       // This is a limitation of testing static instances
       // In a real app, you would use dependency injection
