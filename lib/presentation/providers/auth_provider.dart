@@ -4,8 +4,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
 class AuthProvider with ChangeNotifier {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseAuth _auth;
+  final FirebaseFirestore _firestore;
 
   User? _user;
   bool _isLoading = false;
@@ -25,7 +25,10 @@ class AuthProvider with ChangeNotifier {
   String? get email => _email;
   String? get uid => _uid;
 
-  AuthProvider() {
+  // Constructor with optional dependencies for testing
+  AuthProvider({FirebaseAuth? auth, FirebaseFirestore? firestore})
+      : _auth = auth ?? FirebaseAuth.instance,
+        _firestore = firestore ?? FirebaseFirestore.instance {
     _authStateSubscription = _auth.authStateChanges().listen(
       _onAuthStateChanged,
     );
@@ -81,7 +84,15 @@ class AuthProvider with ChangeNotifier {
       await Future.delayed(const Duration(milliseconds: 500));
     } on FirebaseAuthException catch (e) {
       debugPrint("Firebase login error: ${e.message}");
-      // Here you could set an error message to show in the UI
+      // Set error message to show in the UI
+      _errorMessage = _mapFirebaseAuthError(e);
+      notifyListeners();
+      rethrow;
+    } catch (e) {
+      debugPrint("Login error: $e");
+      _errorMessage = 'An unexpected error occurred.';
+      notifyListeners();
+      rethrow;
     }
 
     _isLoading = false;
@@ -111,7 +122,14 @@ class AuthProvider with ChangeNotifier {
       });
     } on FirebaseAuthException catch (e) {
       debugPrint("Firebase register error: ${e.message}");
-      // Here you could set an error message to show in the UI
+      _errorMessage = _mapFirebaseAuthError(e);
+      notifyListeners();
+      rethrow;
+    } catch (e) {
+      debugPrint("Register error: $e");
+      _errorMessage = 'An unexpected error occurred.';
+      notifyListeners();
+      rethrow;
     }
 
     _isLoading = false;
@@ -127,7 +145,14 @@ class AuthProvider with ChangeNotifier {
       await _auth.sendPasswordResetEmail(email: email);
     } on FirebaseAuthException catch (e) {
       debugPrint("Firebase password reset error: ${e.message}");
-      rethrow; // Rethrow the exception to be caught in the UI
+      _errorMessage = _mapFirebaseAuthError(e);
+      notifyListeners();
+      rethrow;
+    } catch (e) {
+      debugPrint("Password reset error: $e");
+      _errorMessage = 'An unexpected error occurred.';
+      notifyListeners();
+      rethrow;
     }
 
     _isLoading = false;

@@ -11,12 +11,15 @@ import 'auth_provider_test.mocks.dart';
 void main() {
   group('AuthProvider', () {
     late AuthProvider authProvider;
+    late MockFirebaseAuth mockAuth;
+    late MockFirebaseFirestore mockFirestore;
 
     setUp(() {
-      // We need to mock the static instances
-      // This is a limitation of testing static instances
-      // In a real app, you would use dependency injection
-      authProvider = AuthProvider();
+      mockAuth = MockFirebaseAuth();
+      mockFirestore = MockFirebaseFirestore();
+      
+      // Create AuthProvider with mocked dependencies
+      authProvider = AuthProvider(auth: mockAuth, firestore: mockFirestore);
     });
 
     tearDown(() {
@@ -35,14 +38,13 @@ void main() {
 
     test('clearError sets errorMessage to null', () {
       // Simulate an error state
+      // We can't directly set the private field, but we can test the method
       authProvider.clearError();
       expect(authProvider.errorMessage, null);
     });
 
-    test('login sets loading state', () async {
-      // This test would require more complex mocking of static instances
-      // For now, we'll just verify the structure
-      expect(authProvider, isNotNull);
+    test('AuthProvider class exists', () {
+      expect(AuthProvider, isNotNull);
     });
   });
 }
