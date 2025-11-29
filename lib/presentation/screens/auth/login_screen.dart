@@ -20,39 +20,43 @@ class _LoginScreenState extends State<LoginScreen> {
   void _navigateToRoleScreen(String role, BuildContext context) {
     switch (role) {
       case 'member':
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/member-home',
-          (route) => false,
-        );
+        Navigator.pushNamedAndRemoveUntil(context, '/member-home', (route) => false);
         break;
       case 'gymOwner':
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/gym-owner-home',
-          (route) => false,
-        );
+        Navigator.pushNamedAndRemoveUntil(context, '/gym-owner-home', (route) => false);
         break;
       case 'restaurantOwner':
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/restaurant-owner-home',
-          (route) => false,
-        );
+        Navigator.pushNamedAndRemoveUntil(context, '/restaurant-owner-home', (route) => false);
         break;
       case 'nutritionist':
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/nutritionist-home',
-          (route) => false,
-        );
+        Navigator.pushNamedAndRemoveUntil(context, '/nutritionist-home', (route) => false);
         break;
       default:
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/member-home',
-          (route) => false,
+        // Stay on login or show error if role is unknown
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Unknown user role. Please contact support.')),
         );
+    }
+  }
+
+  Future<void> _handleLogin(AuthProvider authProvider) async {
+    if (_formKey.currentState!.validate()) {
+      try {
+        await authProvider.login(
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
+        );
+        // Navigation is handled by the post-frame callback in build method
+        // based on authProvider.currentUserRole change
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(e.toString()),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
@@ -61,14 +65,13 @@ class _LoginScreenState extends State<LoginScreen> {
     return Scaffold(
       body: SafeArea(
         child: SingleChildScrollView(
-          // ADD THIS
-          padding: const EdgeInsets.all(16.0), // ADD THIS
+          padding: const EdgeInsets.all(16.0),
           child: Form(
             key: _formKey,
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                const SizedBox(height: 40), // ADD SPACING
+                const SizedBox(height: 40),
                 Text(
                   'Welcome Back',
                   style: Theme.of(context).textTheme.headlineMedium,
@@ -79,9 +82,7 @@ class _LoginScreenState extends State<LoginScreen> {
                   labelText: 'Email',
                   prefixIcon: Icons.person,
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please Enter Email';
-                    }
+                    if (value == null || value.isEmpty) return 'Please Enter Email';
                     return null;
                   },
                 ),
@@ -92,40 +93,24 @@ class _LoginScreenState extends State<LoginScreen> {
                   prefixIcon: Icons.lock,
                   obscureText: true,
                   validator: (value) {
-                    if (value == null || value.isEmpty) {
-                      return 'Please enter password';
-                    }
-                    if (value.length < 6) {
-                      return 'Password must be at least 6 characters';
-                    }
+                    if (value == null || value.isEmpty) return 'Please enter password';
                     return null;
                   },
                 ),
                 const SizedBox(height: 24),
                 Consumer<AuthProvider>(
                   builder: (context, authProvider, child) {
-                    // Redirect after successful login
-                    if (authProvider.currentUserRole != null &&
-                        !authProvider.isLoading) {
+                    // Logic to handle redirection
+                    if (authProvider.currentUserRole != null && !authProvider.isLoading && authProvider.user != null) {
                       WidgetsBinding.instance.addPostFrameCallback((_) {
-                        _navigateToRoleScreen(
-                          authProvider.currentUserRole!,
-                          context,
-                        );
+                        _navigateToRoleScreen(authProvider.currentUserRole!, context);
                       });
                     }
 
                     return CustomButton(
                       text: 'Login',
                       isLoading: authProvider.isLoading,
-                      onPressed: () {
-                        if (_formKey.currentState!.validate()) {
-                          authProvider.login(
-                            _emailController.text.trim(),
-                            _passwordController.text.trim(),
-                          );
-                        }
-                      },
+                      onPressed: () => _handleLogin(authProvider),
                     );
                   },
                 ),
@@ -145,16 +130,14 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(
-                            builder: (context) => const RegisterScreen(),
-                          ),
+                          MaterialPageRoute(builder: (context) => const RegisterScreen()),
                         );
                       },
                       child: const Text('Sign Up'),
                     ),
                   ],
                 ),
-                const SizedBox(height: 40), // ADD EXTRA SPACE AT BOTTOM
+                const SizedBox(height: 40),
               ],
             ),
           ),

@@ -65,19 +65,25 @@ class _MemberRestaurantScreenState extends State<MemberRestaurantScreen> {
     });
   }
 
-  // --- Menu & Ordering Logic ---
-
   Future<void> _showMenuAndOrder(Restaurant restaurant) async {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
-      builder: (context) => RestaurantMenuSheet(restaurant: restaurant),
+      backgroundColor: Colors.transparent,
+      builder: (context) => Container(
+         decoration: const BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: RestaurantMenuSheet(restaurant: restaurant),
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       body: Column(
         children: [
           Padding(
@@ -85,9 +91,16 @@ class _MemberRestaurantScreenState extends State<MemberRestaurantScreen> {
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Search restaurants...',
-                prefixIcon: const Icon(Icons.search),
-                border: OutlineInputBorder(
+                prefixIcon: Icon(Icons.search, color: Colors.blue[800]), // Blue Icon
+                filled: true,
+                fillColor: Colors.white,
+                enabledBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.grey.shade300),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: BorderSide(color: Colors.blue[800]!), // Blue Border
                 ),
               ),
               onChanged: _filterRestaurants,
@@ -95,7 +108,7 @@ class _MemberRestaurantScreenState extends State<MemberRestaurantScreen> {
           ),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(child: CircularProgressIndicator(color: Colors.blue[800]))
                 : _error != null
                 ? Center(child: Text('Error: $_error'))
                 : _filteredRestaurants.isEmpty
@@ -115,89 +128,100 @@ class _MemberRestaurantScreenState extends State<MemberRestaurantScreen> {
 
   Widget _buildRestaurantCard(Restaurant restaurant) {
     return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
+      margin: const EdgeInsets.only(bottom: 20),
+      elevation: 3,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: InkWell(
         onTap: () => _showMenuAndOrder(restaurant),
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
+        borderRadius: BorderRadius.circular(16),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Image
+            ClipRRect(
+              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              child: Container(
+                height: 160,
+                width: double.infinity,
+                color: Colors.blue[50], // Blue tint placeholder
+                child: restaurant.photo.isNotEmpty
+                    ? Image.network(
+                        restaurant.photo,
+                        fit: BoxFit.cover,
+                        errorBuilder: (context, error, stackTrace) {
+                          return Center(child: Icon(Icons.restaurant, size: 50, color: Colors.blue[200]));
+                        },
+                      )
+                    : Center(child: Icon(Icons.restaurant, size: 50, color: Colors.blue[200])),
+              ),
+            ),
+            
+            // Details
+            Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Container(
-                    width: 70,
-                    height: 70,
-                    decoration: BoxDecoration(
-                      color: Colors.orange[100],
-                      borderRadius: BorderRadius.circular(8),
-                      image: restaurant.photo.isNotEmpty
-                          ? DecorationImage(
-                              image: NetworkImage(restaurant.photo),
-                              fit: BoxFit.cover,
-                            )
-                          : null,
+                  Text(
+                    restaurant.name,
+                    style: const TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
-                    child: restaurant.photo.isEmpty
-                        ? const Icon(Icons.restaurant, color: Colors.orange)
-                        : null,
                   ),
-                  const SizedBox(width: 16),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          restaurant.name,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.bold,
-                          ),
+                  const SizedBox(height: 6),
+                  Text(
+                    restaurant.cuisineType,
+                    style: TextStyle(
+                      color: Colors.grey[700],
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 6),
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.location_on,
+                        size: 16,
+                        color: Colors.grey[400],
+                      ),
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          restaurant.location,
+                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                          overflow: TextOverflow.ellipsis,
                         ),
-                        Text(
-                          restaurant.cuisineType,
-                          style: TextStyle(color: Colors.grey[600]),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  SizedBox(
+                    width: double.infinity,
+                    child: OutlinedButton(
+                      onPressed: () => _showMenuAndOrder(restaurant),
+                      style: OutlinedButton.styleFrom(
+                        foregroundColor: Colors.blue[800], // Blue Text
+                        side: BorderSide(color: Colors.blue[800]!), // Blue Border
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(8),
                         ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.location_on,
-                              size: 14,
-                              color: Colors.red[400],
-                            ),
-                            Expanded(
-                              child: Text(
-                                restaurant.location,
-                                style: const TextStyle(fontSize: 12),
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
+                      ),
+                      child: const Text('View Menu & Order'),
                     ),
                   ),
                 ],
               ),
-              const SizedBox(height: 12),
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: () => _showMenuAndOrder(restaurant),
-                  child: const Text('View Menu & Order'),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
   }
 }
 
-// --- Separate Widget for Menu Bottom Sheet ---
 class RestaurantMenuSheet extends StatefulWidget {
   final Restaurant restaurant;
   const RestaurantMenuSheet({super.key, required this.restaurant});
@@ -243,11 +267,11 @@ class _RestaurantMenuSheetState extends State<RestaurantMenuSheet> {
       );
 
       if (!mounted) return;
-      Navigator.pop(context); // Close sheet
+      Navigator.pop(context); 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Ordered ${meal.name} successfully!'),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.blue[800],
         ),
       );
     } catch (e) {
@@ -267,6 +291,12 @@ class _RestaurantMenuSheetState extends State<RestaurantMenuSheet> {
       padding: const EdgeInsets.all(16),
       child: Column(
         children: [
+          Container(
+            width: 40, 
+            height: 4, 
+            decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+          ),
+          const SizedBox(height: 16),
           Text(
             widget.restaurant.name,
             style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
@@ -274,7 +304,7 @@ class _RestaurantMenuSheetState extends State<RestaurantMenuSheet> {
           const Divider(),
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(child: CircularProgressIndicator(color: Colors.blue[800]))
                 : _meals.isEmpty
                 ? const Center(child: Text("No meals available."))
                 : ListView.builder(
@@ -287,9 +317,9 @@ class _RestaurantMenuSheetState extends State<RestaurantMenuSheet> {
                               ? CircleAvatar(
                                   backgroundImage: NetworkImage(meal.photo),
                                 )
-                              : const Icon(
+                              : Icon(
                                   Icons.fastfood,
-                                  color: Colors.orange,
+                                  color: Colors.blue[300], // Blue Icon
                                 ),
                           title: Text(meal.name),
                           subtitle: Text('\$${meal.price}'),
@@ -298,7 +328,7 @@ class _RestaurantMenuSheetState extends State<RestaurantMenuSheet> {
                                 ? () => _orderMeal(meal)
                                 : null,
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.orange[700],
+                              backgroundColor: Colors.blue[800], // Blue Button
                             ),
                             child: const Text(
                               'Order',

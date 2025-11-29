@@ -1,10 +1,8 @@
 // ignore_for_file: use_build_context_synchronously
 
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart' as local_auth;
-
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_textfield.dart';
 
@@ -24,10 +22,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return;
     }
 
-    final authProvider = Provider.of<local_auth.AuthProvider>(
-      context,
-      listen: false,
-    );
+    final authProvider = Provider.of<local_auth.AuthProvider>(context, listen: false);
 
     try {
       await authProvider.resetPassword(_emailController.text.trim());
@@ -41,11 +36,12 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
         );
         Navigator.pop(context);
       }
-    } on FirebaseAuthException catch (e) {
+    } catch (e) {
+      // Catch String error thrown from Provider
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text(e.message ?? 'An unknown error occurred.'),
+            content: Text(e.toString()),
             backgroundColor: Colors.red,
           ),
         );
@@ -72,10 +68,7 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     const SizedBox(height: 16),
                     const Text(
                       'Reset Your Password',
-                      style: TextStyle(
-                        fontSize: 24,
-                        fontWeight: FontWeight.bold,
-                      ),
+                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 16),
                     const Text(
@@ -89,28 +82,20 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       labelText: 'Email',
                       prefixIcon: Icons.email,
                       validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Please enter your email';
-                        }
-                        if (!RegExp(
-                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$',
-                        ).hasMatch(value)) {
-                          return 'Please enter a valid email';
-                        }
+                        if (value == null || value.isEmpty) return 'Please enter your email';
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) return 'Please enter a valid email';
                         return null;
                       },
                     ),
                     const SizedBox(height: 24),
                     CustomButton(
                       text: 'Send Reset Link',
-                      isLoading: false,
+                      isLoading: authProvider.isLoading, // Use provider loading state
                       onPressed: () => _resetPassword(context),
                     ),
                     const SizedBox(height: 16),
                     TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
+                      onPressed: () => Navigator.pop(context),
                       child: const Text('Back to Login'),
                     ),
                     const SizedBox(height: 60),

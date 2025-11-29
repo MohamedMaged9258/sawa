@@ -14,7 +14,6 @@ class MemberNutritionistScreen extends StatefulWidget {
 }
 
 class _MemberNutritionistScreenState extends State<MemberNutritionistScreen> {
-  // List of Map<String, dynamic> because we haven't made a specific Nutritionist Profile model yet
   List<Map<String, dynamic>> _nutritionists = [];
   bool _isLoading = true;
   String? _error;
@@ -52,7 +51,7 @@ class _MemberNutritionistScreenState extends State<MemberNutritionistScreen> {
     showDialog(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: Text('Book with ${nutritionist['name']}'),
+        title: Text('Book with ${nutritionist['name'] ?? 'Nutritionist'}'),
         content: const Text('Select a date for your consultation:'),
         actions: [
           TextButton(
@@ -64,7 +63,7 @@ class _MemberNutritionistScreenState extends State<MemberNutritionistScreen> {
               Navigator.pop(dialogContext);
               _processBooking(nutritionist);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]), // Blue Button
             child: const Text(
               'Pick Date',
               style: TextStyle(color: Colors.white),
@@ -76,7 +75,6 @@ class _MemberNutritionistScreenState extends State<MemberNutritionistScreen> {
   }
 
   Future<void> _processBooking(Map<String, dynamic> nutritionist) async {
-    // 1. Pick Date
     final date = await showDatePicker(
       context: context,
       initialDate: DateTime.now().add(const Duration(days: 1)),
@@ -86,7 +84,6 @@ class _MemberNutritionistScreenState extends State<MemberNutritionistScreen> {
 
     if (date == null) return;
 
-    // 2. Pick Time
     if (!mounted) return;
     final time = await showTimePicker(
       context: context,
@@ -103,7 +100,6 @@ class _MemberNutritionistScreenState extends State<MemberNutritionistScreen> {
       time.minute,
     );
 
-    // 3. Call Provider
     try {
       final auth = Provider.of<AuthProvider>(context, listen: false);
 
@@ -135,8 +131,9 @@ class _MemberNutritionistScreenState extends State<MemberNutritionistScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? Center(child: CircularProgressIndicator(color: Colors.blue[800]))
           : _error != null
           ? Center(child: Text('Error: $_error'))
           : _nutritionists.isEmpty
@@ -152,50 +149,65 @@ class _MemberNutritionistScreenState extends State<MemberNutritionistScreen> {
   }
 
   Widget _buildNutritionistCard(Map<String, dynamic> nutritionist) {
+    final String name = nutritionist['name'] ?? 'No Name';
+    final String? photoUrl = nutritionist['photo'];
+
     return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       margin: const EdgeInsets.only(bottom: 16),
       child: Padding(
         padding: const EdgeInsets.all(16),
-        child: Column(
+        child: Row(
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(
-              children: [
-                const CircleAvatar(
-                  radius: 30,
-                  backgroundColor: Colors.purple,
-                  child: Icon(Icons.person, color: Colors.white),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        nutritionist['name'],
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const Text(
-                        'Nutritionist',
-                        style: TextStyle(color: Colors.grey),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            CircleAvatar(
+              radius: 35,
+              backgroundColor: Colors.blue[50], // Blue BG
+              backgroundImage: (photoUrl != null && photoUrl.isNotEmpty)
+                  ? NetworkImage(photoUrl)
+                  : null,
+              child: (photoUrl == null || photoUrl.isEmpty)
+                  ? Icon(Icons.person, size: 35, color: Colors.blue[300]) // Blue Icon
+                  : null,
             ),
-            const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => _showBookingDialog(nutritionist),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.purple),
-                child: const Text(
-                  'Book Consultation',
-                  style: TextStyle(color: Colors.white),
+            const SizedBox(width: 16),
+            
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    name,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black, // Forced Black Text
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Certified Nutritionist',
+                    style: TextStyle(
+                      color: Colors.grey[700],
+                      fontSize: 14,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            
+            ElevatedButton(
+              onPressed: () => _showBookingDialog(nutritionist),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.blue[800], // Blue Button
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(20),
                 ),
+              ),
+              child: const Text(
+                'Book',
+                style: TextStyle(color: Colors.white),
               ),
             ),
           ],

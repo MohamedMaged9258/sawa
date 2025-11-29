@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -33,14 +32,18 @@ class AuthProvider with ChangeNotifier {
   Future<void> _onAuthStateChanged(User? user) async {
     _user = user;
     if (user == null) {
-      _currentUserRole = null;
-      _name = null;
-      _email = null;
-      _uid = null;
+      _clearUserData();
     } else {
       await _fetchUserData(user.uid);
     }
     notifyListeners();
+  }
+
+  void _clearUserData() {
+    _currentUserRole = null;
+    _name = null;
+    _email = null;
+    _uid = null;
   }
 
   Future<void> _fetchUserData(String uid) async {
@@ -55,10 +58,7 @@ class AuthProvider with ChangeNotifier {
       }
     } catch (e) {
       debugPrint("Error fetching user data: $e");
-      _currentUserRole = null;
-      _name = null;
-      _email = null;
-      _uid = null;
+      _clearUserData();
     }
   }
 
@@ -68,14 +68,30 @@ class AuthProvider with ChangeNotifier {
 
     try {
       await _auth.signInWithEmailAndPassword(email: email, password: password);
-      // The authStateChanges listener will handle the rest
+      // Wait briefly for the auth state stream to pick up the user and role
+      // This helps ensure currentUserRole is set before the UI tries to use it.
+      await Future.delayed(const Duration(milliseconds: 500));
     } on FirebaseAuthException catch (e) {
-      debugPrint("Firebase login error: ${e.message}");
-      // Here you could set an error message to show in the UI
+      String errorMessage = 'An error occurred';
+      if (e.code == 'user-not-found' || e.code == 'invalid-credential') {
+        errorMessage = 'Invalid email or password.';
+      } else if (e.code == 'wrong-password') {
+        errorMessage = 'Invalid email or password.';
+      } else if (e.code == 'invalid-email') {
+        errorMessage = 'The email address is invalid.';
+      } else if (e.code == 'user-disabled') {
+        errorMessage = 'This user account has been disabled.';
+      } else if (e.code == 'too-many-requests') {
+        errorMessage = 'Too many attempts. Try again later.';
+      }
+      debugPrint("Firebase login error: $errorMessage");
+      throw errorMessage;
+    } catch (e) {
+      throw 'An unexpected error occurred. Please try again.';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-
-    _isLoading = false;
-    notifyListeners();
   }
 
   Future<void> register({
@@ -91,7 +107,6 @@ class AuthProvider with ChangeNotifier {
       UserCredential userCredential = await _auth
           .createUserWithEmailAndPassword(email: email, password: password);
 
-      // Save user data to Firestore
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
         'uid': userCredential.user!.uid,
         'name': name,
@@ -99,15 +114,23 @@ class AuthProvider with ChangeNotifier {
         'role': role,
         'createdAt': Timestamp.now(),
       });
-
-      // The authStateChanges listener will handle the rest
     } on FirebaseAuthException catch (e) {
-      debugPrint("Firebase register error: ${e.message}");
-      // Here you could set an error message to show in the UI
+      String errorMessage = 'Registration failed';
+      if (e.code == 'weak-password') {
+        errorMessage = 'The password provided is too weak.';
+      } else if (e.code == 'email-already-in-use') {
+        errorMessage = 'The account already exists for that email.';
+      } else if (e.code == 'invalid-email') {
+        errorMessage = 'The email address is invalid.';
+      }
+      debugPrint("Firebase register error: $errorMessage");
+      throw errorMessage;
+    } catch (e) {
+      throw 'An unexpected error occurred. Please try again.';
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-
-    _isLoading = false;
-    notifyListeners();
   }
 
   Future<void> resetPassword(String email) async {
@@ -117,16 +140,21 @@ class AuthProvider with ChangeNotifier {
     try {
       await _auth.sendPasswordResetEmail(email: email);
     } on FirebaseAuthException catch (e) {
-      debugPrint("Firebase password reset error: ${e.message}");
-      rethrow; // Rethrow the exception to be caught in the UI
+      String errorMessage = 'Reset password failed';
+      if (e.code == 'user-not-found') {
+        errorMessage = 'No user found for that email.';
+      }
+      throw errorMessage;
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-
-    _isLoading = false;
-    notifyListeners();
   }
 
   Future<void> logout() async {
+    _clearUserData();
     await _auth.signOut();
+    notifyListeners();
   }
 
   @override

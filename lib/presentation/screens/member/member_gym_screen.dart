@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
 import 'package:sawa/presentation/providers/member_provider.dart';
-import 'package:sawa/presentation/models/gym_owner_models.dart'; // Using the Gym model
+import 'package:sawa/presentation/models/gym_owner_models.dart';
 
 class MemberGymScreen extends StatefulWidget {
   const MemberGymScreen({super.key});
@@ -15,7 +15,7 @@ class MemberGymScreen extends StatefulWidget {
 
 class _MemberGymScreenState extends State<MemberGymScreen> {
   List<Gym> _gyms = [];
-  List<Gym> _filteredGyms = []; // For search
+  List<Gym> _filteredGyms = []; 
   bool _isLoading = true;
   String? _error;
 
@@ -70,7 +70,6 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
       final memberId = Provider.of<AuthProvider>(context, listen: false).uid;
       if (memberId == null) throw Exception("User not logged in");
 
-      // For simplicity, booking for "Today"
       await MemberProvider.bookGym(
         memberId: memberId,
         gym: gym,
@@ -81,10 +80,10 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Booked session at ${gym.name}!'),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.blue[800], // Blue Toast
         ),
       );
-      Navigator.pop(context); // Close dialog
+      Navigator.pop(context); 
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -96,21 +95,62 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
     }
   }
 
+  void _showBookingDialog(Gym gym) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: Text('Book ${gym.name}'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Confirm booking for today?'),
+            const SizedBox(height: 16),
+            Text('Date: ${_formatDate(DateTime.now())}'),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
+          ElevatedButton(
+            onPressed: () => _bookGym(gym),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]), // Blue Button
+            child: const Text('Confirm', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatDate(DateTime d) {
+    return "${d.day}/${d.month}/${d.year}";
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50], 
       body: Column(
         children: [
-          // Search Section
-          Padding(
-            padding: const EdgeInsets.all(16.0),
+          Container(
+            padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
+            decoration: const BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.vertical(bottom: Radius.circular(20)),
+            ),
             child: TextField(
               decoration: InputDecoration(
-                hintText: 'Search gyms...',
-                prefixIcon: const Icon(Icons.search),
+                hintText: 'Find your gym...',
+                hintStyle: TextStyle(color: Colors.grey[400]),
+                prefixIcon: Icon(Icons.search, color: Colors.blue[800]), // Blue Icon
+                filled: true,
+                fillColor: Colors.grey[100],
                 border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(12),
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: BorderSide.none,
                 ),
+                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
               ),
               onChanged: _filterGyms,
             ),
@@ -118,7 +158,7 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
 
           Expanded(
             child: _isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? Center(child: CircularProgressIndicator(color: Colors.blue[800]))
                 : _error != null
                 ? Center(child: Text('Error: $_error'))
                 : _filteredGyms.isEmpty
@@ -137,136 +177,140 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
   }
 
   Widget _buildGymCard(Gym gym) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 16),
-      elevation: 2,
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Gym Image
-                Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.green[100],
-                    borderRadius: BorderRadius.circular(8),
-                    image: gym.photo.isNotEmpty
-                        ? DecorationImage(
-                            image: NetworkImage(gym.photo),
-                            fit: BoxFit.cover,
-                          )
-                        : null,
-                  ),
-                  child: gym.photo.isEmpty
-                      ? const Icon(
-                          Icons.fitness_center,
-                          size: 40,
-                          color: Colors.green,
-                        )
-                      : null,
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        gym.name,
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Row(
-                        children: [
-                          Icon(
-                            Icons.location_on,
-                            color: Colors.red[500],
-                            size: 16,
-                          ),
-                          const SizedBox(width: 4),
-                          Expanded(
-                            child: Text(
-                              gym.location,
-                              style: TextStyle(color: Colors.grey[600]),
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 4),
-                      // Price
-                      Text(
-                        '\$${gym.pricePerMonth.toStringAsFixed(2)}/month',
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.green,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 12),
-
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: () => _showBookingDialog(gym),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.green[700],
-                ),
-                child: const Text(
-                  'Book Now',
-                  style: TextStyle(color: Colors.white),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _showBookingDialog(Gym gym) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: Text('Book ${gym.name}'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Confirm booking for today?'),
-            const SizedBox(height: 16),
-            // In a real app, you would add a date picker here
-            Text('Date: ${_formatDate(DateTime.now())}'),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
-          ElevatedButton(
-            onPressed: () => _bookGym(gym), // Call the actual booking method
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700]),
-            child: const Text('Confirm', style: TextStyle(color: Colors.white)),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 15,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: () => _showBookingDialog(gym),
+          borderRadius: BorderRadius.circular(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Stack(
+                children: [
+                  ClipRRect(
+                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    child: Container(
+                      height: 180,
+                      width: double.infinity,
+                      decoration: BoxDecoration(color: Colors.blue[50]),
+                      child: gym.photo.isNotEmpty
+                          ? Image.network(
+                              gym.photo,
+                              fit: BoxFit.cover,
+                              errorBuilder: (c, o, s) => Icon(Icons.fitness_center, size: 50, color: Colors.blue[200]),
+                            )
+                          : Icon(Icons.fitness_center, size: 50, color: Colors.blue[200]),
+                    ),
+                  ),
+                  Positioned(
+                    top: 16,
+                    right: 16,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
+                        ],
+                      ),
+                      child: Text(
+                        '\$${gym.pricePerMonth.toStringAsFixed(0)}/mo',
+                        style: TextStyle(
+                          color: Colors.blue[800], // Blue Text
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              
+              Padding(
+                padding: const EdgeInsets.all(16),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            gym.name,
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black87,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const Row(
+                          children: [
+                            Icon(Icons.star, color: Colors.amber, size: 18),
+                            SizedBox(width: 4),
+                            Text("4.8", style: TextStyle(fontWeight: FontWeight.bold)),
+                          ],
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 8),
+                    Row(
+                      children: [
+                        Icon(Icons.location_on, color: Colors.grey[400], size: 16),
+                        const SizedBox(width: 4),
+                        Expanded(
+                          child: Text(
+                            gym.location,
+                            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 16),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: () => _showBookingDialog(gym),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.blue[800], // Blue Button
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: const Text(
+                          'Book Session',
+                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
-  }
-
-  String _formatDate(DateTime d) {
-    return "${d.day}/${d.month}/${d.year}";
   }
 }
