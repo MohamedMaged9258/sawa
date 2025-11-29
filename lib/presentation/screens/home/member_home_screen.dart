@@ -10,6 +10,7 @@ import 'package:sawa/presentation/models/member_models.dart'; // NEW
 import '../member/member_gym_screen.dart';
 import '../member/member_restaurant_screen.dart';
 import '../member/member_nutritionist_screen.dart';
+import '../member/member_meal_plans_screen.dart'; // NEW
 
 class MemberHomeScreen extends StatefulWidget {
   const MemberHomeScreen({super.key});
@@ -27,6 +28,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
     const MemberGymScreen(),
     const MemberRestaurantScreen(),
     const MemberNutritionistScreen(),
+    const MemberMealPlansScreen(), // NEW
   ];
 
   @override
@@ -78,6 +80,10 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
           BottomNavigationBarItem(
             icon: Icon(Icons.medical_services),
             label: 'Nutritionists',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.restaurant_menu),
+            label: 'Meal Plans',
           ),
         ],
       ),
@@ -186,6 +192,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     // Extract data safely
     final int gymVisits = _stats['gymVisits'] ?? 0;
     final int mealsOrdered = _stats['mealsOrdered'] ?? 0;
+    final int nutritionistSessions = _stats['nutritionistSessions'] ?? 0;
+    final int activePlans = _stats['activePlans'] ?? 0;
     final Booking? nextAppt = _stats['nextAppointment'];
     final FoodOrder? lastOrder = _stats['lastOrder'];
 
@@ -279,16 +287,15 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Icons.restaurant,
                   Colors.orange,
                 ),
-                // Placeholder for Nutritionist stats until fully implemented
                 _buildStatCard(
                   'Nutritionist Sessions',
-                  '0',
+                  nutritionistSessions.toString(),
                   Icons.medical_services,
                   Colors.purple,
                 ),
                 _buildStatCard(
                   'Active Plans',
-                  '0',
+                  activePlans.toString(),
                   Icons.assignment,
                   Colors.blue,
                 ),

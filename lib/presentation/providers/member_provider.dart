@@ -1,8 +1,10 @@
+// ignore_for_file: avoid_print
 
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sawa/presentation/models/member_models.dart';
 import 'package:sawa/presentation/models/gym_owner_models.dart';
 import 'package:sawa/presentation/models/restaurant_owner_models.dart';
+import 'package:sawa/presentation/models/nutritionist_models.dart'; // Import MealPlan model
 
 class MemberProvider {
   MemberProvider._();
@@ -18,6 +20,7 @@ class MemberProvider {
 
   // --- PUBLIC DATA FETCHING (Read Only) ---
 
+  /// Fetch ALL gyms for the member to browse
   static Future<List<Gym>> fetchAllGyms() async {
     try {
       final snapshot = await _firestore
@@ -31,6 +34,7 @@ class MemberProvider {
     }
   }
 
+  /// Fetch ALL restaurants
   static Future<List<Restaurant>> fetchAllRestaurants() async {
     try {
       final snapshot = await _firestore
@@ -44,12 +48,13 @@ class MemberProvider {
     }
   }
 
+  /// Fetch Meals for a specific restaurant
   static Future<List<Meal>> fetchMealsForRestaurant(String restaurantId) async {
     try {
       final snapshot = await _firestore
           .collection('meals')
           .where('restaurantId', isEqualTo: restaurantId)
-          .where('isAvailable', isEqualTo: true) 
+          .where('isAvailable', isEqualTo: true)
           .get();
       return snapshot.docs.map((doc) => Meal.fromFirestore(doc)).toList();
     } catch (e) {
@@ -57,8 +62,24 @@ class MemberProvider {
     }
   }
 
+  /// Fetch Meal Plans for a specific member
+  static Future<List<MealPlan>> fetchMealPlansForMember(String memberId) async {
+    try {
+      final snapshot = await _firestore
+          .collection('meal_plans')
+          .where('clientId', isEqualTo: memberId)
+          .orderBy('createdAt', descending: true)
+          .get();
+      return snapshot.docs.map((doc) => MealPlan.fromFirestore(doc)).toList();
+    } catch (e) {
+      print("Error fetching meal plans: $e");
+      throw Exception('Failed to load meal plans.');
+    }
+  }
+
   // --- MEMBER ACTIONS ---
 
+  /// Create a new Gym Booking
   static Future<void> bookGym({
     required String memberId,
     required Gym gym,
@@ -68,7 +89,7 @@ class MemberProvider {
       final booking = Booking(
         id: DateTime.now().millisecondsSinceEpoch.toString(),
         memberId: memberId,
-        serviceId: gym.gid,
+        serviceId: gym.gid, // Using 'gid' from Gym model
         serviceName: gym.name,
         type: 'Gym',
         date: date,
@@ -146,6 +167,9 @@ class MemberProvider {
           .map((doc) => FoodOrder.fromFirestore(doc))
           .toList();
 
+      // Fetch meal plans for active plans count
+      final mealPlans = await fetchMealPlansForMember(memberId);
+
       int gymVisits = bookings.where((b) => b.type == 'Gym').length;
       int nutritionistSessions = bookings
           .where((b) => b.type == 'Nutritionist')
@@ -158,14 +182,14 @@ class MemberProvider {
       Booking? nextAppt = upcoming.isNotEmpty ? upcoming.first : null;
 
       final pastOrders = orders;
-      pastOrders.sort((a, b) => b.date.compareTo(a.date));
+      pastOrders.sort((a, b) => b.date.compareTo(a.date)); // Descending
       FoodOrder? lastOrder = pastOrders.isNotEmpty ? pastOrders.first : null;
 
       return {
         'gymVisits': gymVisits,
         'mealsOrdered': orders.length,
         'nutritionistSessions': nutritionistSessions,
-        'activePlans': 0, 
+        'activePlans': mealPlans.length, // Now properly counting meal plans
         'nextAppointment': nextAppt,
         'lastOrder': lastOrder,
       };
@@ -177,8 +201,11 @@ class MemberProvider {
 
   // --- NUTRITIONIST METHODS ---
 
+  /// Fetch all users who are nutritionists
   static Future<List<Map<String, dynamic>>> fetchAllNutritionists() async {
     try {
+      // Assuming nutritionists are stored in 'users' collection with role 'nutritionist'
+      // Or if you have a 'nutritionist_profiles' collection (recommended)
       final snapshot = await _firestore
           .collection('users')
           .where('role', isEqualTo: 'nutritionist')
@@ -199,6 +226,7 @@ class MemberProvider {
     }
   }
 
+  /// Book a consultation
   static Future<void> bookConsultation({
     required String memberId,
     required String memberName,
