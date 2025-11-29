@@ -4,11 +4,10 @@ import 'package:mockito/annotations.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
+import 'auth_provider_test.mocks.dart';
 
 // Generate mocks
 @GenerateMocks([FirebaseAuth, FirebaseFirestore, User, UserCredential, DocumentSnapshot])
-import 'auth_provider_test.mocks.dart';
-
 void main() {
   group('AuthProvider', () {
     late AuthProvider authProvider;

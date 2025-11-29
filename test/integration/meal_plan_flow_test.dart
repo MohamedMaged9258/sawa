@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:sawa/presentation/providers/nutritionist_provider.dart';
 import 'package:sawa/presentation/providers/member_provider.dart';
 import 'package:sawa/presentation/models/nutritionist_models.dart';
+import 'meal_plan_flow_test.mocks.dart';
 
 // Generate mocks
 @GenerateMocks([
@@ -18,8 +19,6 @@ import 'package:sawa/presentation/models/nutritionist_models.dart';
   FirebaseAuth,
   User
 ])
-import 'meal_plan_flow_test.mocks.dart';
-
 void main() {
   group('Meal Plan Flow Integration', () {
     late MockFirebaseFirestore mockFirestore;
