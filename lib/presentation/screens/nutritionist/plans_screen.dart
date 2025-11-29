@@ -15,7 +15,6 @@ class PlansScreen extends StatefulWidget {
 }
 
 class _PlansScreenState extends State<PlansScreen> {
-  // State for data management
   List<MealPlan> _plans = [];
   bool _isLoading = true;
   String? _error;
@@ -60,39 +59,30 @@ class _PlansScreenState extends State<PlansScreen> {
         builder: (context) => CreateEditPlanScreen(isEditing: isEditing, plan: plan),
       ),
     );
-    // If the creation/editing was successful (popped with true), refresh the list
     if (result == true) {
       _fetchPlans();
     }
   }
 
-  // Inside _PlansScreenState (plans_screen.dart)
-
-void _deletePlan(String mid) {
+  void _deletePlan(String mid) {
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog( // Renaming context here is important
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Plan'),
         content: const Text('Are you sure you want to delete this meal plan?'),
         actions: [
           TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
           TextButton(
             onPressed: () async {
-              Navigator.pop(dialogContext); // Close dialog
-              
+              Navigator.pop(dialogContext);
               try {
                 await NutritionistProvider.deletePlan(mid);
-                
-                // ⚠️ CRITICAL SAFETY CHECK
-                if (!mounted) return; 
-                
+                if (!mounted) return;
                 setState(() {
                   _plans.removeWhere((plan) => plan.mid == mid);
                 });
-                
-                // Use the screen's context for SnackBar
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Plan deleted successfully!'), backgroundColor: Colors.green)
+                  const SnackBar(content: Text('Plan deleted successfully!'), backgroundColor: Colors.blue)
                 );
               } catch (e) {
                 if (!mounted) return;
@@ -107,40 +97,37 @@ void _deletePlan(String mid) {
         ],
       ),
     );
-}
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       floatingActionButton: FloatingActionButton(
         onPressed: () => _navigateOrCreatePlan(),
-        backgroundColor: Colors.purple[700],
+        backgroundColor: Colors.blue[800],
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: Column(
         children: [
-          Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                const Text('Meal Plans', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
-                IconButton(icon: const Icon(Icons.filter_list), onPressed: () {}),
-              ],
+          const Padding(
+            padding: EdgeInsets.all(16.0),
+            // Removed the Row with Filter Icon as requested
+            child: Align(
+              alignment: Alignment.centerLeft,
+              child: Text('Meal Plans', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
             ),
           ),
-          Expanded(
-            child: _buildBody(),
-          ),
+          Expanded(child: _buildBody()),
         ],
       ),
     );
   }
 
   Widget _buildBody() {
-    if (_isLoading) return const Center(child: CircularProgressIndicator());
-    if (_error != null) return Center(child: Text('Error loading plans: $_error'));
-    if (_plans.isEmpty) return const Center(child: Text('No meal plans created yet.'));
+    if (_isLoading) return const Center(child: CircularProgressIndicator(color: Colors.blue));
+    if (_error != null) return Center(child: Text('Error: $_error', style: const TextStyle(color: Colors.red)));
+    if (_plans.isEmpty) return Center(child: Text('No meal plans created yet.', style: TextStyle(color: Colors.grey[600])));
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -152,8 +139,13 @@ void _deletePlan(String mid) {
   }
 
   Widget _buildPlanCard(MealPlan mealPlan) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.08), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -162,8 +154,11 @@ void _deletePlan(String mid) {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(mealPlan.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                Expanded(
+                  child: Text(mealPlan.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                ),
                 PopupMenuButton<String>(
+                  icon: Icon(Icons.more_vert, color: Colors.grey[600]),
                   onSelected: (value) {
                     if (value == 'edit') {
                       _navigateOrCreatePlan(plan: mealPlan, isEditing: true);
@@ -173,21 +168,41 @@ void _deletePlan(String mid) {
                   },
                   itemBuilder: (context) => [
                     const PopupMenuItem(value: 'edit', child: Text('Edit Plan')),
-                    const PopupMenuItem(value: 'delete', child: Text('Delete Plan'),)
+                    const PopupMenuItem(value: 'delete', child: Text('Delete Plan', style: TextStyle(color: Colors.red))),
                   ],
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            Text('Client: ${mealPlan.clientName}'),
+            Row(
+              children: [
+                Icon(Icons.person, size: 16, color: Colors.blue[800]),
+                const SizedBox(width: 6),
+                Text(mealPlan.clientName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+              ],
+            ),
             const SizedBox(height: 4),
-            Text('Duration: ${mealPlan.duration}'),
-            const SizedBox(height: 8),
-            Text(mealPlan.description, style: TextStyle(color: Colors.grey[600])),
-            const SizedBox(height: 8),
-            Text('Created: ${_formatDate(mealPlan.createdAt)}', style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+            Row(
+              children: [
+                Icon(Icons.timer, size: 16, color: Colors.grey[500]),
+                const SizedBox(width: 6),
+                Text(mealPlan.duration, style: TextStyle(color: Colors.grey[600])),
+              ],
+            ),
             const SizedBox(height: 12),
-            // ... (Buttons remain the same)
+            Text(
+              mealPlan.description,
+              style: TextStyle(color: Colors.grey[700], fontStyle: FontStyle.italic),
+              maxLines: 2, overflow: TextOverflow.ellipsis,
+            ),
+            const SizedBox(height: 12),
+            Align(
+              alignment: Alignment.bottomRight,
+              child: Text(
+                'Created: ${_formatDate(mealPlan.createdAt)}',
+                style: TextStyle(fontSize: 12, color: Colors.grey[400]),
+              ),
+            ),
           ],
         ),
       ),

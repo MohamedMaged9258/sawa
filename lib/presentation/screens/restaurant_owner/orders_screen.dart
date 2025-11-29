@@ -1,5 +1,3 @@
-// ignore_for_file: avoid_print
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/models/restaurant_owner_models.dart';
@@ -48,7 +46,7 @@ class _OrdersScreenState extends State<OrdersScreen> {
     return Scaffold(
       appBar: AppBar(
         title: const Text('Orders'),
-        backgroundColor: Colors.orange[700],
+        backgroundColor: Colors.blue[700],
         foregroundColor: Colors.white,
       ),
       body: _isLoading

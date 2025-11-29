@@ -16,7 +16,6 @@ class ConsultationScreen extends StatefulWidget {
 }
 
 class _ConsultationScreenState extends State<ConsultationScreen> {
-  // State for data management
   List<Consultation> _consultations = [];
   bool _isLoading = true;
   String? _error;
@@ -27,7 +26,6 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
     _fetchConsultations();
   }
 
-  // --- DATA FETCHING ---
   Future<void> _fetchConsultations() async {
     if (!mounted) return;
     setState(() {
@@ -36,19 +34,10 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
     });
 
     try {
-      final nutritionistId = Provider.of<AuthProvider>(
-        context,
-        listen: false,
-      ).uid;
-      if (nutritionistId == null || nutritionistId.isEmpty) {
-        throw Exception("User not logged in.");
-      }
+      final nutritionistId = Provider.of<AuthProvider>(context, listen: false).uid;
+      if (nutritionistId == null || nutritionistId.isEmpty) throw Exception("User not logged in.");
 
-      // NOTE: Using fetchConsultationsByNutritionist, assuming the provider maps to the correct database column.
-      final fetchedConsultations =
-          await NutritionistProvider.fetchConsultationsByNutritionist(
-            nutritionistId,
-          );
+      final fetchedConsultations = await NutritionistProvider.fetchConsultationsByNutritionist(nutritionistId);
 
       if (!mounted) return;
       setState(() {
@@ -64,57 +53,15 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
     }
   }
 
-  // --- STATUS & ACTION LOGIC ---
-
   Future<void> _updateConsultationStatus(String id, String status) async {
     try {
       await NutritionistProvider.updateConsultationStatus(id, status);
-
       if (!mounted) return;
       _fetchConsultations();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Consultation marked as $status!'),
-          backgroundColor: Colors.green,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Marked as $status'), backgroundColor: Colors.blue));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to update status: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    }
-  }
-
-  Future<void> _startConsultation(Consultation consultation) async {
-    try {
-      // Set status to 'In Progress' immediately
-      await NutritionistProvider.updateConsultationStatus(
-        consultation.cid,
-        'In Progress',
-      );
-
-      if (!mounted) return;
-      _fetchConsultations();
-
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Consultation started (Status: In Progress)!'),
-          backgroundColor: Colors.blue,
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to start consultation: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
     }
   }
 
@@ -123,42 +70,21 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
       context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Consultation'),
-        content: Text(
-          'Are you sure you want to delete the consultation with ${consultation.clientName}?',
-        ),
+        content: Text('Delete session with ${consultation.clientName}?'),
         actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancel'),
-          ),
+          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
           TextButton(
             onPressed: () async {
-              Navigator.pop(dialogContext); // Close dialog
+              Navigator.pop(dialogContext);
               try {
-                // Assuming provider method uses CID for ID
                 await NutritionistProvider.deleteConsultation(consultation.cid);
-
                 if (!mounted) return;
                 _fetchConsultations();
-
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Consultation deleted.'),
-                    backgroundColor: Colors.green,
-                  ),
-                );
               } catch (e) {
-                if (!mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(
-                    content: Text('Failed to delete: $e'),
-                    backgroundColor: Colors.red,
-                  ),
-                );
+                // handle error
               }
             },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Text('Delete'),
+            child: const Text('Delete', style: TextStyle(color: Colors.red)),
           ),
         ],
       ),
@@ -166,22 +92,20 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
   }
 
   void _showAddConsultationDialog() async {
-    final bool? consultationAdded = await showDialog<bool>(
+    final bool? added = await showDialog<bool>(
       context: context,
       builder: (context) => const ScheduleConsultationDialog(),
     );
-
-    if (consultationAdded == true) {
-      _fetchConsultations();
-    }
+    if (added == true) _fetchConsultations();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       floatingActionButton: FloatingActionButton(
         onPressed: _showAddConsultationDialog,
-        backgroundColor: Colors.purple[700],
+        backgroundColor: Colors.blue[800],
         child: const Icon(Icons.add, color: Colors.white),
       ),
       body: Column(
@@ -189,13 +113,8 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
           Padding(
             padding: const EdgeInsets.all(16.0),
             child: Row(
-              // REMOVED right-side button
-              mainAxisAlignment: MainAxisAlignment.start,
-              children: [
-                const Text(
-                  'Consultations',
-                  style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                ),
+              children: const [
+                Text('Consultations', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
               ],
             ),
           ),
@@ -206,13 +125,9 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
   }
 
   Widget _buildBody() {
-    if (_isLoading) return const Center(child: CircularProgressIndicator());
-    if (_error != null) {
-      return Center(child: Text('Error loading consultations: $_error'));
-    }
-    if (_consultations.isEmpty) {
-      return const Center(child: Text('No consultations scheduled.'));
-    }
+    if (_isLoading) return const Center(child: CircularProgressIndicator(color: Colors.blue));
+    if (_error != null) return Center(child: Text('Error: $_error'));
+    if (_consultations.isEmpty) return Center(child: Text('No consultations.', style: TextStyle(color: Colors.grey[600])));
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -224,42 +139,13 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
   }
 
   Widget _buildConsultationCard(Consultation consultation) {
-    // Determine the main action button based on status
-    Widget primaryActionButton;
-    Widget separator = const SizedBox(width: 8);
-
-    final bool showPrimaryAction =
-        consultation.status == 'Scheduled' ||
-        consultation.status == 'In Progress';
-
-    if (consultation.status == 'Scheduled') {
-      primaryActionButton = Expanded(
-        child: ElevatedButton(
-          onPressed: () => _startConsultation(consultation), // Start Now
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[700]),
-          child: const Text('Start Now', style: TextStyle(color: Colors.white)),
-        ),
-      );
-    } else if (consultation.status == 'In Progress') {
-      primaryActionButton = Expanded(
-        child: ElevatedButton(
-          onPressed: () =>
-              _updateConsultationStatus(consultation.cid, 'Completed'),
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.green[700]),
-          child: const Text(
-            'Mark Complete',
-            style: TextStyle(color: Colors.white),
-          ),
-        ),
-      );
-    } else {
-      // If status is Completed or Cancelled
-      primaryActionButton = const SizedBox.shrink();
-      separator = const SizedBox.shrink();
-    }
-
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.08), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -268,65 +154,66 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text(
-                  consultation.clientName,
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
+                Text(consultation.clientName, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 12,
-                    vertical: 6,
-                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: _getStatusColor(
-                      consultation.status,
-                    ).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(16),
-                    border: Border.all(
-                      color: _getStatusColor(consultation.status),
-                    ),
+                    color: _getStatusColor(consultation.status).withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
                     consultation.status,
-                    style: TextStyle(
-                      color: _getStatusColor(consultation.status),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
+                    style: TextStyle(color: _getStatusColor(consultation.status), fontWeight: FontWeight.bold, fontSize: 12),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
-            Text('Type: ${consultation.type}'),
-            const SizedBox(height: 8),
-            Text('Date: ${_formatDate(consultation.date)}'),
-            const SizedBox(height: 8),
-            Text('Time: ${_formatTime(consultation.date)}'),
-            const SizedBox(height: 12),
-
-            // --- ACTION BUTTONS ROW ---
+            Row(children: [
+               Icon(Icons.event, size: 16, color: Colors.blue[800]),
+               const SizedBox(width: 6),
+               Text('${_formatDate(consultation.date)} at ${_formatTime(consultation.date)}'),
+            ]),
+            const SizedBox(height: 4),
+            Row(children: [
+               Icon(Icons.info_outline, size: 16, color: Colors.grey[500]),
+               const SizedBox(width: 6),
+               Text(consultation.type, style: TextStyle(color: Colors.grey[600])),
+            ]),
+            const SizedBox(height: 16),
+            
+            // Actions
             Row(
               children: [
-                // 1. PRIMARY ACTION (Shown only for Scheduled/In Progress)
-                if (showPrimaryAction) primaryActionButton,
-                if (showPrimaryAction) separator,
-
-                // 2. ALWAYS AVAILABLE DELETE BUTTON (Fixed width and position)
-                SizedBox(
-                  width: 100,
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.delete, size: 18, color: Colors.red),
-                    label: const Text('Delete'),
-                    onPressed: () =>
-                        _showDeleteConsultationDialog(consultation),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red,
-                      padding: const EdgeInsets.symmetric(vertical: 10),
+                if (consultation.status == 'Scheduled')
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => _updateConsultationStatus(consultation.cid, 'In Progress'),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800], shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                      child: const Text('Start', style: TextStyle(color: Colors.white)),
                     ),
+                  ),
+                if (consultation.status == 'In Progress')
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => _updateConsultationStatus(consultation.cid, 'Completed'),
+                      style: ElevatedButton.styleFrom(backgroundColor: Colors.green, shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8))),
+                      child: const Text('Complete', style: TextStyle(color: Colors.white)),
+                    ),
+                  ),
+                if (consultation.status == 'Scheduled' || consultation.status == 'In Progress')
+                  const SizedBox(width: 8),
+                  
+                SizedBox(
+                  width: 80,
+                  child: OutlinedButton(
+                    onPressed: () => _showDeleteConsultationDialog(consultation),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red[400], 
+                      side: BorderSide(color: Colors.red[200]!),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(8)),
+                    ),
+                    child: const Icon(Icons.delete, size: 18),
                   ),
                 ),
               ],
@@ -339,49 +226,32 @@ class _ConsultationScreenState extends State<ConsultationScreen> {
 
   Color _getStatusColor(String status) {
     switch (status) {
-      case 'Scheduled':
-        return Colors.blue;
-      case 'In Progress':
-        return Colors.orange;
-      case 'Completed':
-        return Colors.green;
-      case 'Cancelled':
-        return Colors.red;
-      default:
-        return Colors.grey;
+      case 'Scheduled': return Colors.blue;
+      case 'In Progress': return Colors.orange;
+      case 'Completed': return Colors.green;
+      default: return Colors.red;
     }
   }
 
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
-
-  String _formatTime(DateTime date) {
-    return '${date.hour}:${date.minute.toString().padLeft(2, '0')}';
-  }
+  String _formatDate(DateTime date) => '${date.day}/${date.month}/${date.year}';
+  String _formatTime(DateTime date) => '${date.hour}:${date.minute.toString().padLeft(2, '0')}';
 }
 
-// --- ScheduleConsultationDialog Class ---
 class ScheduleConsultationDialog extends StatefulWidget {
   const ScheduleConsultationDialog({super.key});
 
   @override
-  State<ScheduleConsultationDialog> createState() =>
-      _ScheduleConsultationDialogState();
+  State<ScheduleConsultationDialog> createState() => _ScheduleConsultationDialogState();
 }
 
-class _ScheduleConsultationDialogState
-    extends State<ScheduleConsultationDialog> {
+class _ScheduleConsultationDialogState extends State<ScheduleConsultationDialog> {
   final _formKey = GlobalKey<FormState>();
-  final TextEditingController _typeController = TextEditingController();
-
-  List<Client> _availableClients = [];
-  bool _isLoadingClients = true;
+  final _typeController = TextEditingController();
+  List<Client> _clients = [];
   String? _selectedClientId;
   String? _selectedClientName;
-
   DateTime? _selectedDateTime;
-  bool _isSubmitting = false;
+  bool _loading = true;
 
   @override
   void initState() {
@@ -389,211 +259,78 @@ class _ScheduleConsultationDialogState
     _fetchClients();
   }
 
-  @override
-  void dispose() {
-    _typeController.dispose();
-    super.dispose();
-  }
-
   Future<void> _fetchClients() async {
-    try {
-      final nutritionistId = Provider.of<AuthProvider>(
-        context,
-        listen: false,
-      ).uid;
-      if (nutritionistId != null) {
-        final clients = await NutritionistProvider.fetchClientsByNutritionId(
-          nutritionistId,
-        );
-        if (mounted) {
-          setState(() {
-            _availableClients = clients;
-            _isLoadingClients = false;
-          });
-        }
-      }
-    } catch (e) {
-      if (mounted) {
-        setState(() {
-          _isLoadingClients = false;
-        });
-        print('Error fetching clients for consultation: $e');
-      }
+    final uid = Provider.of<AuthProvider>(context, listen: false).uid;
+    if (uid != null) {
+      final data = await NutritionistProvider.fetchClientsByNutritionId(uid);
+      if (mounted) setState(() { _clients = data; _loading = false; });
     }
   }
 
-  Future<void> _pickDateTime() async {
-    final date = await showDatePicker(
-      context: context,
-      initialDate: DateTime.now(),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 365)),
-    );
-
-    if (date == null) return;
-
-    final time = await showTimePicker(
-      context: context,
-      initialTime: TimeOfDay.now(),
-    );
-
-    if (time == null) return;
-
-    setState(() {
-      _selectedDateTime = DateTime(
-        date.year,
-        date.month,
-        date.day,
-        time.hour,
-        time.minute,
-      );
-    });
-  }
-
-  Future<void> _submitConsultation() async {
-    if (!_formKey.currentState!.validate() || _selectedDateTime == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _selectedDateTime == null
-                ? 'Please select a date and time.'
-                : 'Please fill all fields.',
-          ),
-          backgroundColor: Colors.red,
-        ),
-      );
-      return;
-    }
-
-    setState(() => _isSubmitting = true);
-
+  Future<void> _submit() async {
+    if (!_formKey.currentState!.validate() || _selectedDateTime == null) return;
+    
     try {
-      final nutritionistId = Provider.of<AuthProvider>(
-        context,
-        listen: false,
-      ).uid!;
-
-      final newConsultation = Consultation(
+      final uid = Provider.of<AuthProvider>(context, listen: false).uid!;
+      final consultation = Consultation(
         cid: DateTime.now().millisecondsSinceEpoch.toString(),
-        nutritionistId: nutritionistId,
+        nutritionistId: uid,
         clientId: _selectedClientId!,
         clientName: _selectedClientName!,
         date: _selectedDateTime!,
         status: 'Scheduled',
         type: _typeController.text,
       );
-
-      await NutritionistProvider.addConsultation(newConsultation);
-
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Consultation scheduled successfully!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-
-      Navigator.pop(context, true); // Pop with 'true' to indicate success
+      await NutritionistProvider.addConsultation(consultation);
+      if (mounted) Navigator.pop(context, true);
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to schedule: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
-    } finally {
-      if (mounted) setState(() => _isSubmitting = false);
+      print(e);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return AlertDialog(
-      title: const Text('Schedule New Consultation'),
+      title: const Text('Schedule'),
       content: Form(
         key: _formKey,
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              // Client Selection Dropdown
-              _isLoadingClients
-                  ? const Center(child: CircularProgressIndicator())
-                  : DropdownButtonFormField<String>(
-                      decoration: const InputDecoration(
-                        labelText: 'Select Client',
-                        border: OutlineInputBorder(),
-                      ),
-                      items: _availableClients.map((client) {
-                        return DropdownMenuItem<String>(
-                          value: client.cid,
-                          child: Text(client.name),
-                        );
-                      }).toList(),
-                      onChanged: (String? newId) {
-                        setState(() {
-                          _selectedClientId = newId;
-                          _selectedClientName = _availableClients
-                              .firstWhere((c) => c.cid == newId)
-                              .name;
-                        });
-                      },
-                      validator: (value) =>
-                          value == null ? 'Select a client' : null,
-                    ),
-              const SizedBox(height: 16),
-
-              // Consultation Type
-              TextFormField(
-                controller: _typeController,
-                decoration: const InputDecoration(
-                  labelText: 'Consultation Type',
-                  border: OutlineInputBorder(),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            _loading 
+              ? const CircularProgressIndicator()
+              : DropdownButtonFormField(
+                  decoration: const InputDecoration(labelText: 'Client', border: OutlineInputBorder()),
+                  items: _clients.map((c) => DropdownMenuItem(value: c.cid, child: Text(c.name))).toList(),
+                  onChanged: (v) {
+                    setState(() {
+                      _selectedClientId = v as String;
+                      _selectedClientName = _clients.firstWhere((c) => c.cid == v).name;
+                    });
+                  },
                 ),
-                validator: (value) =>
-                    value!.isEmpty ? 'Enter type (e.g., Follow-up)' : null,
-              ),
-              const SizedBox(height: 16),
-
-              // Date & Time Picker Button
-              ElevatedButton.icon(
-                onPressed: _pickDateTime,
-                icon: const Icon(Icons.calendar_today, size: 18),
-                label: Text(
-                  _selectedDateTime == null
-                      ? 'Select Date & Time'
-                      : 'Scheduled: ${_formatDateTime(_selectedDateTime!)}',
-                ),
-              ),
-            ],
-          ),
+            const SizedBox(height: 12),
+            TextFormField(controller: _typeController, decoration: const InputDecoration(labelText: 'Type', border: OutlineInputBorder())),
+            const SizedBox(height: 12),
+            ElevatedButton.icon(
+              icon: const Icon(Icons.calendar_today, size: 16),
+              label: Text(_selectedDateTime == null ? 'Select Date' : '${_selectedDateTime!.day}/${_selectedDateTime!.month} ${_selectedDateTime!.hour}:${_selectedDateTime!.minute}'),
+              onPressed: () async {
+                final d = await showDatePicker(context: context, initialDate: DateTime.now(), firstDate: DateTime.now(), lastDate: DateTime.now().add(const Duration(days: 365)));
+                if (d != null) {
+                  final t = await showTimePicker(context: context, initialTime: TimeOfDay.now());
+                  if (t != null) setState(() => _selectedDateTime = DateTime(d.year, d.month, d.day, t.hour, t.minute));
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800], foregroundColor: Colors.white),
+            )
+          ],
         ),
       ),
       actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
-        ),
-        ElevatedButton(
-          onPressed: _isSubmitting ? null : _submitConsultation,
-          style: ElevatedButton.styleFrom(backgroundColor: Colors.purple[700]),
-          child: _isSubmitting
-              ? const SizedBox(
-                  width: 20,
-                  height: 20,
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: Colors.white,
-                  ),
-                )
-              : const Text('Schedule', style: TextStyle(color: Colors.white)),
-        ),
+        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        ElevatedButton(onPressed: _submit, style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]), child: const Text('Schedule', style: TextStyle(color: Colors.white))),
       ],
     );
-  }
-
-  String _formatDateTime(DateTime dt) {
-    return '${dt.day}/${dt.month}/${dt.year} ${dt.hour}:${dt.minute.toString().padLeft(2, '0')}';
   }
 }

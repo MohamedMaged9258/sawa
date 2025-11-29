@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
@@ -10,6 +9,7 @@ class AuthProvider with ChangeNotifier {
 
   User? _user;
   bool _isLoading = false;
+  String? _errorMessage;
 
   String? _currentUserRole;
   String? _name;
@@ -19,6 +19,7 @@ class AuthProvider with ChangeNotifier {
 
   User? get user => _user;
   bool get isLoading => _isLoading;
+  String? get errorMessage => _errorMessage;
   String? get currentUserRole => _currentUserRole;
   String? get name => _name;
   String? get email => _email;
@@ -30,17 +31,26 @@ class AuthProvider with ChangeNotifier {
     );
   }
 
+  void clearError() {
+    _errorMessage = null;
+    notifyListeners();
+  }
+
   Future<void> _onAuthStateChanged(User? user) async {
     _user = user;
     if (user == null) {
-      _currentUserRole = null;
-      _name = null;
-      _email = null;
-      _uid = null;
+      _clearUserData();
     } else {
       await _fetchUserData(user.uid);
     }
     notifyListeners();
+  }
+
+  void _clearUserData() {
+    _currentUserRole = null;
+    _name = null;
+    _email = null;
+    _uid = null;
   }
 
   Future<void> _fetchUserData(String uid) async {
@@ -55,20 +65,20 @@ class AuthProvider with ChangeNotifier {
       }
     } catch (e) {
       debugPrint("Error fetching user data: $e");
-      _currentUserRole = null;
-      _name = null;
-      _email = null;
-      _uid = null;
+      _clearUserData();
     }
   }
 
   Future<void> login(String email, String password) async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
       await _auth.signInWithEmailAndPassword(email: email, password: password);
-      // The authStateChanges listener will handle the rest
+      // Wait briefly for the auth state stream to pick up the user and role
+      // This helps ensure currentUserRole is set before the UI tries to use it.
+      await Future.delayed(const Duration(milliseconds: 500));
     } on FirebaseAuthException catch (e) {
       debugPrint("Firebase login error: ${e.message}");
       // Here you could set an error message to show in the UI
@@ -85,13 +95,13 @@ class AuthProvider with ChangeNotifier {
     required String role,
   }) async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
       UserCredential userCredential = await _auth
           .createUserWithEmailAndPassword(email: email, password: password);
 
-      // Save user data to Firestore
       await _firestore.collection('users').doc(userCredential.user!.uid).set({
         'uid': userCredential.user!.uid,
         'name': name,
@@ -99,8 +109,6 @@ class AuthProvider with ChangeNotifier {
         'role': role,
         'createdAt': Timestamp.now(),
       });
-
-      // The authStateChanges listener will handle the rest
     } on FirebaseAuthException catch (e) {
       debugPrint("Firebase register error: ${e.message}");
       // Here you could set an error message to show in the UI
@@ -112,6 +120,7 @@ class AuthProvider with ChangeNotifier {
 
   Future<void> resetPassword(String email) async {
     _isLoading = true;
+    _errorMessage = null;
     notifyListeners();
 
     try {
@@ -125,8 +134,31 @@ class AuthProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  String _mapFirebaseAuthError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'invalid-email':
+        return 'The email address is badly formatted.';
+      case 'user-disabled':
+        return 'This account has been disabled.';
+      case 'user-not-found':
+        return 'No user found with this email.';
+      case 'wrong-password':
+        return 'Incorrect password.';
+      case 'email-already-in-use':
+        return 'An account already exists with this email.';
+      case 'operation-not-allowed':
+        return 'This operation is not allowed.';
+      case 'weak-password':
+        return 'The password is too weak.';
+      default:
+        return e.message ?? 'An unknown error occurred.';
+    }
+  }
+
   Future<void> logout() async {
+    _clearUserData();
     await _auth.signOut();
+    notifyListeners();
   }
 
   @override

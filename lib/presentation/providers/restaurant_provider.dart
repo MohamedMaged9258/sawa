@@ -1,4 +1,3 @@
-// ignore_for_file: avoid_print, avoid_types_as_parameter_names
 
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
@@ -16,8 +15,8 @@ class RestaurantProvider {
   static final CollectionReference _mealsCollection = _firestore.collection('meals');
   static final CollectionReference _ordersCollection = _firestore.collection('orders');
 
-  // ================= RESTAURANTS =================
-
+  // --- RESTAURANT & MEAL METHODS (Standard CRUD) ---
+  
   static Future<List<Restaurant>> fetchRestaurantsByOwner(String ownerId) async {
     if (ownerId.isEmpty) return [];
     try {
@@ -27,7 +26,6 @@ class RestaurantProvider {
           .get();
       return snapshot.docs.map((doc) => Restaurant.fromFirestore(doc)).toList();
     } catch (e) {
-      print("Error fetching restaurants: $e");
       throw Exception('Failed to fetch restaurants.');
     }
   }
@@ -42,7 +40,7 @@ class RestaurantProvider {
       Restaurant newRestaurant = restaurant.copyWith(photo: photoUrl);
       await _restaurantsCollection.doc(newRestaurant.rid).set(newRestaurant.toFirestore());
     } catch (e) {
-      throw Exception('Failed to add restaurant: $e');
+      throw Exception('Failed to add restaurant.');
     }
   }
 
@@ -50,13 +48,10 @@ class RestaurantProvider {
     try {
       await _restaurantsCollection.doc(restaurant.rid).delete();
       await _deletePhotoFromUrl(restaurant.photo);
-      // Optional: Delete associated meals here if needed
     } catch (e) {
       throw Exception('Failed to delete restaurant.');
     }
   }
-
-  // ================= MEALS =================
 
   static Future<List<Meal>> fetchMealsByOwner(String ownerId) async {
     if (ownerId.isEmpty) return [];
@@ -72,9 +67,6 @@ class RestaurantProvider {
   }
 
   static Future<void> addMeal(Meal meal, XFile? imageFile) async {
-    if (meal.restaurantId.isEmpty || meal.ownerId.isEmpty) {
-      throw Exception('Restaurant ID or Owner ID missing');
-    }
     try {
       String photoUrl = '';
       if (imageFile != null) {
@@ -83,7 +75,7 @@ class RestaurantProvider {
       Meal newMeal = meal.copyWith(photo: photoUrl);
       await _mealsCollection.doc(newMeal.mid).set(newMeal.toFirestore());
     } catch (e) {
-      throw Exception('Failed to add meal: $e');
+      throw Exception('Failed to add meal.');
     }
   }
 
@@ -104,8 +96,6 @@ class RestaurantProvider {
     }
   }
 
-  // ================= ORDERS =================
-
   static Future<List<Order>> fetchOrdersByOwner(String ownerId) async {
     if (ownerId.isEmpty) return [];
     try {
@@ -115,7 +105,8 @@ class RestaurantProvider {
           .get();
       return snapshot.docs.map((doc) => Order.fromFirestore(doc)).toList();
     } catch (e) {
-      throw Exception('Failed to fetch orders.');
+      print("Fetch order error: $e");
+      return [];
     }
   }
 
@@ -127,7 +118,7 @@ class RestaurantProvider {
     }
   }
 
-  // ================= STATISTICS =================
+  // --- STATISTICS (REAL DATA IMPLEMENTATION) ---
 
   static Future<Map<String, dynamic>> getStatistics(String ownerId) async {
     try {
@@ -135,11 +126,16 @@ class RestaurantProvider {
       final meals = await fetchMealsByOwner(ownerId);
       final orders = await fetchOrdersByOwner(ownerId);
 
+      // 1. Calculate Real Revenue (Non-cancelled orders)
       double totalRevenue = orders
           .where((o) => o.status != 'cancelled')
           .fold(0.0, (sum, o) => sum + o.totalAmount);
       
+      // 2. Count Pending
       int pendingOrders = orders.where((o) => o.status == 'pending').length;
+
+      // 3. Count Unique Customers (Real Member Count)
+      final uniqueCustomers = orders.map((o) => o.customerId).toSet().length;
 
       return {
         'restaurantCount': restaurants.length,
@@ -147,13 +143,12 @@ class RestaurantProvider {
         'orderCount': orders.length,
         'pendingOrderCount': pendingOrders,
         'totalRevenue': totalRevenue,
+        'uniqueCustomers': uniqueCustomers, // REAL customers count
       };
     } catch (e) {
       throw Exception('Failed to load statistics.');
     }
   }
-
-  // ================= HELPERS =================
 
   static Future<String> _uploadPhoto(XFile imageFile, String folderPath) async {
     try {
@@ -172,7 +167,7 @@ class RestaurantProvider {
     try {
       await _storage.refFromURL(photoUrl).delete();
     } catch (e) {
-      print("Info: Could not delete photo: $e");
+      print("Delete error: $e");
     }
   }
 }

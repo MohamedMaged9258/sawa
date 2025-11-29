@@ -1,4 +1,4 @@
-// ignore_for_file: deprecated_member_use
+// ignore_for_file: deprecated_member_use, use_build_context_synchronously
 
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
@@ -17,8 +17,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final TextEditingController _confirmPasswordController =
-      TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
 
   String? _selectedRole;
@@ -26,50 +25,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final List<Map<String, dynamic>> _userRoles = [
     {'value': 'member', 'label': 'Member', 'icon': Icons.person},
     {'value': 'gymOwner', 'label': 'Gym Owner', 'icon': Icons.fitness_center},
-    {
-      'value': 'restaurantOwner',
-      'label': 'Restaurant Owner',
-      'icon': Icons.restaurant,
-    },
-    {
-      'value': 'nutritionist',
-      'label': 'Nutritionist',
-      'icon': Icons.medical_services,
-    },
+    {'value': 'restaurantOwner', 'label': 'Restaurant Owner', 'icon': Icons.restaurant},
+    {'value': 'nutritionist', 'label': 'Nutritionist', 'icon': Icons.medical_services},
   ];
 
   void _navigateToRoleScreen(String role, BuildContext context) {
     switch (role) {
       case 'member':
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/member-home',
-          (route) => false,
-        );
+        Navigator.pushNamedAndRemoveUntil(context, '/member-home', (route) => false);
         break;
       case 'gymOwner':
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/gym-owner-home',
-          (route) => false,
-        );
+        Navigator.pushNamedAndRemoveUntil(context, '/gym-owner-home', (route) => false);
         break;
       case 'restaurantOwner':
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/restaurant-owner-home',
-          (route) => false,
-        );
+        Navigator.pushNamedAndRemoveUntil(context, '/restaurant-owner-home', (route) => false);
         break;
       case 'nutritionist':
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/nutritionist-home',
-          (route) => false,
-        );
+        Navigator.pushNamedAndRemoveUntil(context, '/nutritionist-home', (route) => false);
         break;
       default:
         Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+    }
+  }
+
+  Future<void> _handleRegister(AuthProvider authProvider) async {
+    if (_selectedRole == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Please select a role'), backgroundColor: Colors.orange),
+      );
+      return;
+    }
+
+    if (_formKey.currentState!.validate()) {
+      try {
+        await authProvider.register(
+          email: _emailController.text.trim(),
+          name: _nameController.text.trim(),
+          password: _passwordController.text.trim(),
+          role: _selectedRole!,
+        );
+        // Navigation handled by Consumer callback
+      } catch (e) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(e.toString()), backgroundColor: Colors.red),
+        );
+      }
     }
   }
 
@@ -79,19 +80,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
       appBar: AppBar(title: const Text('Create Account')),
       body: SafeArea(
         child: SingleChildScrollView(
-          // ADD THIS
-          padding: const EdgeInsets.all(16.0), // ADD THIS
+          padding: const EdgeInsets.all(16.0),
           child: Form(
             key: _formKey,
             child: Column(
               children: [
                 const SizedBox(height: 20),
-                Text(
-                  'Select Your Role',
-                  style: Theme.of(context).textTheme.titleMedium,
-                ),
+                Text('Select Your Role', style: Theme.of(context).textTheme.titleMedium),
                 const SizedBox(height: 16),
-
                 GridView.builder(
                   shrinkWrap: true,
                   physics: const NeverScrollableScrollPhysics(),
@@ -105,41 +101,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   itemBuilder: (context, index) {
                     final role = _userRoles[index];
                     final isSelected = _selectedRole == role['value'];
-
                     return Card(
-                      color: isSelected
-                          ? Theme.of(context).primaryColor.withOpacity(0.1)
-                          : null,
+                      color: isSelected ? Theme.of(context).primaryColor.withOpacity(0.1) : null,
                       elevation: isSelected ? 4 : 1,
                       child: InkWell(
-                        onTap: () {
-                          setState(() {
-                            _selectedRole = role['value'];
-                          });
-                        },
+                        onTap: () => setState(() => _selectedRole = role['value']),
                         child: Padding(
                           padding: const EdgeInsets.all(12.0),
                           child: Column(
                             mainAxisAlignment: MainAxisAlignment.center,
                             children: [
-                              Icon(
-                                role['icon'],
-                                color: isSelected
-                                    ? Theme.of(context).primaryColor
-                                    : Colors.grey,
-                                size: 32,
-                              ),
+                              Icon(role['icon'], color: isSelected ? Theme.of(context).primaryColor : Colors.grey, size: 32),
                               const SizedBox(height: 8),
                               Text(
                                 role['label'],
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
-                                  fontWeight: isSelected
-                                      ? FontWeight.bold
-                                      : FontWeight.normal,
-                                  color: isSelected
-                                      ? Theme.of(context).primaryColor
-                                      : Colors.black,
+                                  fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                                  color: isSelected ? Theme.of(context).primaryColor : Colors.black,
                                 ),
                               ),
                             ],
@@ -149,11 +128,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     );
                   },
                 ),
-
                 const SizedBox(height: 24),
                 CustomTextField(
                   controller: _nameController,
-                  labelText: 'Name',
+                  labelText: 'Full Name',
                   prefixIcon: Icons.person_outline,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
@@ -165,8 +143,9 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 const SizedBox(height: 16),
                 CustomTextField(
                   controller: _emailController,
-                  labelText: 'Email',
+                  labelText: 'Email Address',
                   prefixIcon: Icons.email,
+                  keyboardType: TextInputType.emailAddress,
                   validator: (value) {
                     if (value == null || value.isEmpty) {
                       return 'Please enter email';
@@ -211,20 +190,33 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 16),
+                // Error message display
                 Consumer<AuthProvider>(
                   builder: (context, authProvider, child) {
-                    // Redirect after successful registration
-                    if (authProvider.currentUserRole != null &&
-                        !authProvider.isLoading) {
+                    if (authProvider.errorMessage != null) {
+                      return Padding(
+                        padding: const EdgeInsets.only(bottom: 16),
+                        child: Text(
+                          authProvider.errorMessage!,
+                          style: const TextStyle(
+                            color: Colors.red,
+                            fontSize: 14,
+                          ),
+                          textAlign: TextAlign.center,
+                        ),
+                      );
+                    }
+                    return const SizedBox.shrink();
+                  },
+                ),
+                Consumer<AuthProvider>(
+                  builder: (context, authProvider, child) {
+                    if (authProvider.currentUserRole != null && !authProvider.isLoading && authProvider.user != null) {
                       WidgetsBinding.instance.addPostFrameCallback((_) {
-                        _navigateToRoleScreen(
-                          authProvider.currentUserRole!,
-                          context,
-                        );
+                        _navigateToRoleScreen(authProvider.currentUserRole!, context);
                       });
                     }
-
                     return CustomButton(
                       text: 'Create Account',
                       isLoading: authProvider.isLoading,
@@ -249,14 +241,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   children: [
                     const Text("Already have an account?"),
                     TextButton(
-                      onPressed: () {
-                        Navigator.pop(context);
-                      },
+                      onPressed: () => Navigator.pop(context),
                       child: const Text('Login'),
                     ),
                   ],
                 ),
-                const SizedBox(height: 40), // ADD EXTRA SPACE AT BOTTOM
+                const SizedBox(height: 40),
               ],
             ),
           ),

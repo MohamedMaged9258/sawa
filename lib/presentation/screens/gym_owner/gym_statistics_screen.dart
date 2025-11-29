@@ -1,3 +1,5 @@
+// lib/presentation/screens/gym_owner/gym_statistics_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
@@ -11,7 +13,6 @@ class GymStatisticsScreen extends StatefulWidget {
 }
 
 class _GymStatisticsScreenState extends State<GymStatisticsScreen> {
-  // --- STATE VARIABLES ---
   bool _isLoading = true;
   Map<String, dynamic>? _stats;
   String? _error;
@@ -22,7 +23,6 @@ class _GymStatisticsScreenState extends State<GymStatisticsScreen> {
     _loadStatistics();
   }
 
-  /// Fetches stats from the static provider
   Future<void> _loadStatistics() async {
     setState(() {
       _isLoading = true;
@@ -52,22 +52,14 @@ class _GymStatisticsScreenState extends State<GymStatisticsScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('Gym Statistics'),
-        backgroundColor: Colors.green[700],
+        title: const Text('Analytics'),
+        backgroundColor: Colors.blue[800],
         foregroundColor: Colors.white,
+        elevation: 0,
         actions: [
-          PopupMenuButton<String>(
-            onSelected: (value) {
-              // Handle period selection
-            },
-            itemBuilder: (context) => [
-              const PopupMenuItem(value: 'week', child: Text('This Week')),
-              const PopupMenuItem(value: 'month', child: Text('This Month')),
-              const PopupMenuItem(value: 'year', child: Text('This Year')),
-            ],
-            icon: const Icon(Icons.calendar_today),
-          ),
+           IconButton(icon: const Icon(Icons.calendar_today), onPressed: () {}),
         ],
       ),
       body: _buildBody(),
@@ -75,192 +67,134 @@ class _GymStatisticsScreenState extends State<GymStatisticsScreen> {
   }
 
   Widget _buildBody() {
-    if (_isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+    if (_isLoading) return const Center(child: CircularProgressIndicator(color: Colors.blue));
+    if (_error != null) return Center(child: Text('Error: $_error', style: const TextStyle(color: Colors.red)));
+    if (_stats == null) return const Center(child: Text('No data found.'));
 
-    if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Text('Error: $_error', style: const TextStyle(color: Colors.red)),
-        ),
-      );
-    }
+    // --- FETCHING REAL DATA (Defaults to 0 if null) ---
+    final double totalRevenue = (_stats!['totalMonthlyRevenue'] is num) ? _stats!['totalMonthlyRevenue'].toDouble() : 0.0;
     
-    if (_stats == null) {
-      return const Center(child: Text('No statistics data found.'));
-    }
-
-    // Extract real data
-    final double totalRevenue = _stats!['totalMonthlyRevenue'] ?? 0.0;
-    final String activeMembers = (_stats!['activeMembers'] ?? 0).toString(); // Still demo
+    // THIS is the line that gets the members count.
+    final int activeMembers = (_stats!['activeMembers'] is int) ? _stats!['activeMembers'] : 0;
+    
+    // Additional real fields (default to 0 to remove hardcoded demo values)
+    final int newMembers = (_stats!['newMembers'] is int) ? _stats!['newMembers'] : 0;
+    final String retentionRate = _stats!['retentionRate'] ?? '0%'; 
+    final double weeklyRevenue = (_stats!['weeklyRevenue'] is num) ? _stats!['weeklyRevenue'].toDouble() : 0.0;
+    final double yearlyRevenue = (_stats!['yearlyRevenue'] is num) ? _stats!['yearlyRevenue'].toDouble() : 0.0;
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(16.0),
       child: Column(
         children: [
-          // Overview Cards
-          _buildOverviewCards(
-            totalRevenue: totalRevenue,
-            activeMembers: activeMembers,
-          ),
-          const SizedBox(height: 24),
-
-          // Revenue Chart Section
-          _buildRevenueSection(totalRevenue: totalRevenue),
-          const SizedBox(height: 24),
-
-          // Member Statistics (Still demo data)
-          _buildMemberStatsSection(),
-          const SizedBox(height: 24),
-
-          // Popular Times (Still demo data)
-          _buildPopularTimesSection(),
+          _buildOverviewCards(totalRevenue: totalRevenue, activeMembers: activeMembers.toString()),
+          const SizedBox(height: 20),
+          _buildRevenueSection(totalRevenue: totalRevenue, weekly: weeklyRevenue, yearly: yearlyRevenue),
+          const SizedBox(height: 20),
+          _buildMemberStatsSection(newMembers: newMembers, retention: retentionRate),
+          const SizedBox(height: 20),
+          // Only show popular times if the data exists in the backend
+          if (_stats!['popularTimes'] != null && _stats!['popularTimes'] is List) 
+             _buildPopularTimesSection(_stats!['popularTimes']),
         ],
       ),
     );
   }
 
-  Widget _buildOverviewCards({
-    required double totalRevenue,
-    required String activeMembers,
-  }) {
+  Widget _buildOverviewCards({required double totalRevenue, required String activeMembers}) {
     return Row(
       children: [
-        Expanded(
-          child: _StatCard(
-            title: 'Total Monthly Revenue', // Title clarified
-            value: '\$${totalRevenue.toStringAsFixed(2)}', // Use real data
-            change: '+12%', // Demo
-            isPositive: true,
-            icon: Icons.attach_money,
-          ),
-        ),
+        Expanded(child: _StatCard(
+          title: 'Total Revenue', 
+          value: '\$${totalRevenue.toStringAsFixed(0)}', 
+          change: '', 
+          isPositive: true, 
+          icon: Icons.attach_money, 
+          color: Colors.green
+        )),
         const SizedBox(width: 12),
-        Expanded(
-          child: _StatCard(
-            title: 'Active Members',
-            value: activeMembers, // Use real data (from demo)
-            change: '+8%', // Demo
-            isPositive: true,
-            icon: Icons.people,
-          ),
-        ),
+        Expanded(child: _StatCard(
+          title: 'Active Members', 
+          value: activeMembers, 
+          change: '', 
+          isPositive: true, 
+          icon: Icons.group, 
+          color: Colors.blue
+        )),
       ],
     );
   }
 
-  Widget _buildRevenueSection({required double totalRevenue}) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Revenue Overview',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              height: 200,
-              decoration: BoxDecoration(
-                border: Border.all(color: Colors.grey[300]!),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: const Center(
-                // This would be replaced with a chart package
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(Icons.bar_chart, size: 48, color: Colors.grey),
-                    SizedBox(height: 8),
-                    Text('Revenue chart will be displayed here'),
-                    Text('(Integration with charts library needed)'),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                const _MiniStatItem(label: 'This Week', value: '\$2,850'), // Demo
-                _MiniStatItem(
-                  label: 'This Month',
-                  value: '\$${totalRevenue.toStringAsFixed(2)}', // Use real data
-                ),
-                const _MiniStatItem(label: 'This Year', value: '\$89,124'), // Demo
-              ],
-            ),
-          ],
-        ),
+  Widget _buildRevenueSection({required double totalRevenue, required double weekly, required double yearly}) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Revenue Overview', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 20),
+          Container(
+            height: 150,
+            decoration: BoxDecoration(color: Colors.blue[50], borderRadius: BorderRadius.circular(12)),
+            child: Center(child: Icon(Icons.bar_chart, size: 60, color: Colors.blue[200])),
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _MiniStatItem(label: 'This Week', value: '\$${weekly.toStringAsFixed(0)}'),
+              _MiniStatItem(label: 'This Month', value: '\$${totalRevenue.toStringAsFixed(0)}'),
+              _MiniStatItem(label: 'This Year', value: '\$${yearly.toStringAsFixed(0)}'),
+            ],
+          ),
+        ],
       ),
     );
   }
   
-  // --- All other builder methods (_buildMemberStatsSection, _buildPopularTimesSection, etc.) ---
-  // --- are unchanged as they still use demo data. ---
-  Widget _buildMemberStatsSection() {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Member Statistics',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            _buildStatRow('New Members This Month', '28'),
-            _buildStatRow('Membership Renewals', '45'),
-            _buildStatRow('Average Visit Frequency', '3.2/week'),
-            _buildStatRow('Member Retention Rate', '92%'),
-          ],
-        ),
+  Widget _buildMemberStatsSection({required int newMembers, required String retention}) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Engagement', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          _buildStatRow('New Members This Month', newMembers.toString()),
+          _buildStatRow('Retention Rate', retention),
+        ],
       ),
     );
   }
 
-  Widget _buildPopularTimesSection() {
-    final popularTimes = [
-      {'time': '6:00-8:00 AM', 'percentage': 65},
-      {'time': '12:00-2:00 PM', 'percentage': 45},
-      {'time': '5:00-7:00 PM', 'percentage': 85},
-      {'time': '7:00-9:00 PM', 'percentage': 72},
-    ];
-
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text(
-              'Popular Times',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 16),
-            ...popularTimes.map((time) => _buildTimeSlot(time)),
-          ],
-        ),
+  Widget _buildPopularTimesSection(List<dynamic> popularTimesData) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Text('Peak Hours', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          const SizedBox(height: 16),
+          ...popularTimesData.map((time) {
+             final Map<String, dynamic> slot = Map<String, dynamic>.from(time);
+             return _buildTimeSlot(slot);
+          }),
+        ],
       ),
     );
   }
@@ -271,14 +205,8 @@ class _GymStatisticsScreenState extends State<GymStatisticsScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Text(
-            label,
-            style: TextStyle(color: Colors.grey[600]),
-          ),
-          Text(
-            value,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
+          Text(label, style: TextStyle(color: Colors.grey[600])),
+          Text(value, style: const TextStyle(fontWeight: FontWeight.bold)),
         ],
       ),
     );
@@ -288,20 +216,23 @@ class _GymStatisticsScreenState extends State<GymStatisticsScreen> {
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 8.0),
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(timeSlot['time'] as String),
-              Text('${timeSlot['percentage']}%'),
+              Text(timeSlot['time']?.toString() ?? '', style: const TextStyle(fontSize: 12)),
+              Text('${timeSlot['percentage']}%', style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
             ],
           ),
-          const SizedBox(height: 4),
-          LinearProgressIndicator(
-            value: (timeSlot['percentage'] as int) / 100,
-            backgroundColor: Colors.grey[200],
-            valueColor: AlwaysStoppedAnimation<Color>(Colors.green[400]!),
+          const SizedBox(height: 6),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(4),
+            child: LinearProgressIndicator(
+              value: (int.tryParse(timeSlot['percentage'].toString()) ?? 0) / 100,
+              backgroundColor: Colors.blue[50],
+              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue[400]!),
+              minHeight: 8,
+            ),
           ),
         ],
       ),
@@ -309,110 +240,53 @@ class _GymStatisticsScreenState extends State<GymStatisticsScreen> {
   }
 }
 
-// --- Helper widgets (_StatCard, _MiniStatItem) are unchanged ---
 class _StatCard extends StatelessWidget {
-  final String title;
-  final String value;
-  final String change;
+  final String title, value, change;
   final bool isPositive;
   final IconData icon;
+  final Color color;
 
-  const _StatCard({
-    required this.title,
-    required this.value,
-    required this.change,
-    required this.isPositive,
-    required this.icon,
-  });
+  const _StatCard({required this.title, required this.value, required this.change, required this.isPositive, required this.icon, required this.color});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      elevation: 2,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: 40,
-              height: 40,
-              decoration: BoxDecoration(
-                color: Colors.green[50],
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, color: Colors.green[700], size: 20),
-            ),
-            const SizedBox(height: 12),
-            Text(
-              value,
-              style: const TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              title,
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              children: [
-                Icon(
-                  isPositive ? Icons.arrow_upward : Icons.arrow_downward,
-                  color: isPositive ? Colors.green : Colors.red,
-                  size: 16,
-                ),
-                const SizedBox(width: 4),
-                Text(
-                  change,
-                  style: TextStyle(
-                    color: isPositive ? Colors.green : Colors.red,
-                    fontWeight: FontWeight.w500,
-                  ),
-                ),
-              ],
-            ),
-          ],
-        ),
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white, borderRadius: BorderRadius.circular(20),
+        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+            child: Icon(icon, color: color, size: 20),
+          ),
+          const SizedBox(height: 12),
+          Text(value, style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          Text(title, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
+          if (change.isNotEmpty) ...[
+             const SizedBox(height: 4),
+             Text(change, style: TextStyle(color: isPositive ? Colors.green : Colors.red, fontSize: 12, fontWeight: FontWeight.bold)),
+          ]
+        ],
       ),
     );
   }
 }
 
 class _MiniStatItem extends StatelessWidget {
-  final String label;
-  final String value;
-
-  const _MiniStatItem({
-    required this.label,
-    required this.value,
-  });
-
+  final String label, value;
+  const _MiniStatItem({required this.label, required this.value});
   @override
   Widget build(BuildContext context) {
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          value,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            color: Colors.grey[600],
-          ),
-        ),
+        Text(value, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+        Text(label, style: TextStyle(fontSize: 12, color: Colors.grey[500])),
       ],
     );
   }

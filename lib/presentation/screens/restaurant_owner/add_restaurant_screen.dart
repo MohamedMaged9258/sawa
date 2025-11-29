@@ -1,3 +1,4 @@
+// lib/presentation/screens/restaurant_owner/add_restaurant_screen.dart
 // ignore_for_file: use_build_context_synchronously, deprecated_member_use
 
 import 'dart:io';
@@ -67,7 +68,7 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Restaurant added!'),
-          backgroundColor: Colors.green,
+          backgroundColor: Colors.blue,
         ),
       );
       Navigator.pop(context);
@@ -81,127 +82,135 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
     }
   }
 
-  // ... (Helper methods _pickImage, _getCurrentLocation, _openAddressInput remain exactly the same as your code)
-  // I'm omitting them for brevity, but they should be copy-pasted here.
-
   Future<void> _pickImage() async {
-    // ... (Same as your code)
     final ImagePicker picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
     if (image != null) setState(() => _selectedImage = image);
   }
 
   Future<void> _getCurrentLocation() async {
-    // ... (Same as your code, use Geolocator/Permission)
     var status = await Permission.location.request();
     if (status.isGranted) {
-      Position position = await Geolocator.getCurrentPosition();
-      setState(() {
-        _selectedLatitude = position.latitude;
-        _selectedLongitude = position.longitude;
-        _locationController.text =
-            "${position.latitude}, ${position.longitude}";
-      });
+      try {
+         Position position = await Geolocator.getCurrentPosition();
+        setState(() {
+          _selectedLatitude = position.latitude;
+          _selectedLongitude = position.longitude;
+          _locationController.text = "${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}";
+        });
+      } catch (e) {
+         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Could not get location")));
+      }
     }
   }
 
   // ignore: unused_element
-  Future<void> _openAddressInput() async {
-    // ... (Same as your code)
-  }
+  Future<void> _openAddressInput() async {}
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.white,
       appBar: AppBar(
         title: const Text('Add Restaurant'),
-        backgroundColor: Colors.orange[700],
+        backgroundColor: Colors.blue[800],
         foregroundColor: Colors.white,
+        elevation: 0,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(24),
         child: Form(
           key: _formKey,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Photo
+              const Text('Restaurant Details', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 4),
+              Text('Enter your restaurant information', style: TextStyle(color: Colors.grey[600])),
+              const SizedBox(height: 24),
+
+              // Photo Upload Zone
               GestureDetector(
                 onTap: _pickImage,
                 child: Container(
-                  height: 150,
+                  height: 180,
                   width: double.infinity,
-                  color: Colors.orange[50],
+                  decoration: BoxDecoration(
+                    color: Colors.blue[50],
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: Colors.blue[100]!, width: 2),
+                  ),
                   child: _selectedImage != null
-                      ? Image.file(
-                          File(_selectedImage!.path),
-                          fit: BoxFit.cover,
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(14),
+                          child: Image.file(
+                            File(_selectedImage!.path),
+                            fit: BoxFit.cover,
+                          ),
                         )
-                      : const Icon(
-                          Icons.camera_alt,
-                          size: 50,
-                          color: Colors.orange,
+                      : Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.add_a_photo, size: 40, color: Colors.blue[300]),
+                            const SizedBox(height: 8),
+                            Text('Upload Cover Photo', style: TextStyle(color: Colors.blue[800], fontWeight: FontWeight.bold)),
+                          ],
                         ),
                 ),
               ),
-              const SizedBox(height: 20),
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Name',
-                  border: OutlineInputBorder(),
-                ),
-                validator: (v) => v!.isEmpty ? 'Required' : null,
-              ),
+              const SizedBox(height: 24),
+
+              _buildTextField(_nameController, 'Restaurant Name', Icons.store),
               const SizedBox(height: 16),
-              DropdownButtonFormField(
+              
+              DropdownButtonFormField<String>(
                 value: _selectedCuisineType,
-                items: _cuisineTypes
-                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                    .toList(),
+                items: _cuisineTypes.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
                 onChanged: (v) => setState(() => _selectedCuisineType = v),
-                decoration: const InputDecoration(
-                  labelText: 'Cuisine',
-                  border: OutlineInputBorder(),
+                decoration: InputDecoration(
+                  labelText: 'Cuisine Type',
+                  prefixIcon: Icon(Icons.restaurant_menu, color: Colors.blue[800]),
+                  filled: true, fillColor: Colors.grey[50],
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                 ),
                 validator: (v) => v == null ? 'Required' : null,
               ),
               const SizedBox(height: 16),
+              
               TextFormField(
                 controller: _locationController,
+                readOnly: true,
                 decoration: InputDecoration(
                   labelText: 'Location',
-                  border: const OutlineInputBorder(),
+                  prefixIcon: Icon(Icons.location_on, color: Colors.blue[800]),
+                  filled: true, fillColor: Colors.grey[50],
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
                   suffixIcon: IconButton(
-                    icon: const Icon(Icons.my_location),
+                    icon: Icon(Icons.my_location, color: Colors.blue[600]),
                     onPressed: _getCurrentLocation,
                   ),
                 ),
                 validator: (v) => v!.isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: 16),
-              TextFormField(
-                controller: _priceController,
-                decoration: const InputDecoration(
-                  labelText: 'Avg Price',
-                  border: OutlineInputBorder(),
-                ),
-                keyboardType: TextInputType.number,
-                validator: (v) => v!.isEmpty ? 'Required' : null,
-              ),
+              
+              _buildTextField(_priceController, 'Avg Price per Person', Icons.attach_money, isNumber: true),
               const SizedBox(height: 32),
+              
               SizedBox(
                 width: double.infinity,
+                height: 50,
                 child: ElevatedButton(
                   onPressed: _isSubmitting ? null : _submit,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.orange[700],
-                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    backgroundColor: Colors.blue[800],
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                   ),
                   child: _isSubmitting
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
-                          'Add Restaurant',
-                          style: TextStyle(color: Colors.white),
+                          'Create Restaurant',
+                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
                         ),
                 ),
               ),
@@ -209,6 +218,20 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
           ),
         ),
       ),
+    );
+  }
+
+  Widget _buildTextField(TextEditingController ctrl, String label, IconData icon, {bool isNumber = false}) {
+    return TextFormField(
+      controller: ctrl,
+      keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+      decoration: InputDecoration(
+        labelText: label,
+        prefixIcon: Icon(icon, color: Colors.blue[800]),
+        filled: true, fillColor: Colors.grey[50],
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      ),
+      validator: (v) => v!.isEmpty ? 'Required' : null,
     );
   }
 }

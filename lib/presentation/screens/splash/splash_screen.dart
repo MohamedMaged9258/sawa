@@ -13,71 +13,64 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-    _navigateToNextScreen();
+    _initApp();
   }
 
-  void _navigateToNextScreen() async {
-    // Wait for 3 seconds
+  Future<void> _initApp() async {
+    // 1. Wait for logo animation/branding time
     await Future.delayed(const Duration(seconds: 3));
 
-    // Check if user is logged in (in real app, check from shared preferences or provider)
+    if (!mounted) return;
+
+    // 2. Check Auth State
     final authProvider = Provider.of<AuthProvider>(context, listen: false);
 
-    if (mounted) {
-      if (authProvider.currentUserRole != null) {
-        // User is logged in, go to appropriate home screen
-        switch (authProvider.currentUserRole) {
-          case 'member':
-            Navigator.pushReplacementNamed(context, '/member-home');
-            break;
-          case 'gymOwner':
-            Navigator.pushReplacementNamed(context, '/gym-owner-home');
-            break;
-          case 'restaurantOwner':
-            Navigator.pushReplacementNamed(context, '/restaurant-owner-home');
-            break;
-          case 'nutritionist':
-            Navigator.pushReplacementNamed(context, '/nutritionist-home');
-            break;
-          default:
-            Navigator.pushReplacementNamed(context, '/login');
-        }
-      } else {
-        // User is not logged in, go to login screen
-        Navigator.pushReplacementNamed(context, '/login');
+    // This property (currentUserRole) must exist in your AuthProvider
+    if (authProvider.currentUserRole != null) {
+      switch (authProvider.currentUserRole) {
+        case 'member':
+          Navigator.pushReplacementNamed(context, '/member-home');
+          break;
+        case 'gymOwner': 
+          Navigator.pushReplacementNamed(context, '/gym-owner-home');
+          break;
+        case 'restaurantOwner':
+          Navigator.pushReplacementNamed(context, '/restaurant-owner-home');
+          break;
+        case 'nutritionist':
+          Navigator.pushReplacementNamed(context, '/nutritionist-home');
+          break;
+        default:
+          Navigator.pushReplacementNamed(context, '/login');
       }
+    } else {
+      Navigator.pushReplacementNamed(context, '/login');
     }
   }
 
   @override
   Widget build(BuildContext context) {
+    // Access the Theme we defined in main.dart
+    final primaryColor = Theme.of(context).primaryColor;
+
     return Scaffold(
-      backgroundColor: Colors.white, // Or your preferred background color
+      backgroundColor: Colors.white, 
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Your splash image
+            // Logo
             Image.asset(
-              'assets/images/sawa_logo.png', // Change to your image path
-              width: 200,
-              height: 200,
+              'assets/images/sawa_logo.png',
+              width: 180,
+              height: 180,
               fit: BoxFit.contain,
             ),
-            const SizedBox(height: 20),
-            // Optional: Loading indicator
-            const CircularProgressIndicator(
-              valueColor: AlwaysStoppedAnimation<Color>(Colors.blue),
-            ),
-            const SizedBox(height: 20),
-            // Optional: App name
-            const Text(
-              'Fitness App',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Colors.blue,
-              ),
+            const SizedBox(height: 30),
+            
+            // Loading Indicator (Themed)
+            CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(primaryColor),
             ),
           ],
         ),
