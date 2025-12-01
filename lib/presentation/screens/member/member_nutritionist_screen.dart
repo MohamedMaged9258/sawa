@@ -1,5 +1,3 @@
-// lib/presentation/screens/member/member_nutritionist_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
@@ -109,8 +107,7 @@ class _MemberNutritionistScreenState extends State<MemberNutritionistScreen> {
         memberId: auth.uid!,
         memberName: auth.name ?? 'Member',
         nutritionistId: nutritionist['id'],
-        nutritionistName:
-            nutritionist['name'] ?? 'N',
+        nutritionistName: nutritionist['name'] ?? 'N',
         date: fullDateTime,
       );
 

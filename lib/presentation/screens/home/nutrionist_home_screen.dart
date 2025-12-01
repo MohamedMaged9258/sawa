@@ -1,11 +1,7 @@
-// lib/presentation/screens/home/nutrionist_home_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
 import 'package:sawa/presentation/providers/nutritionist_provider.dart';
-
-// Ensure these imports are correct based on your file structure
 import '../nutritionist/consultation_screen.dart';
 import '../nutritionist/clients_screen.dart';
 import '../nutritionist/plans_screen.dart';
@@ -46,7 +42,10 @@ class _NutritionistHomeScreenState extends State<NutritionistHomeScreen> {
           selectedItemColor: Colors.blue[800],
           unselectedItemColor: Colors.grey[400],
           showUnselectedLabels: true,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          selectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
           unselectedLabelStyle: const TextStyle(fontSize: 12),
           elevation: 0,
           items: const [
@@ -159,8 +158,8 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
 
     // --- Safe Data Parsing ---
-    final monthlyRevenue = (_stats['monthlyRevenue'] is num) 
-        ? (_stats['monthlyRevenue'] as num).toDouble() 
+    final monthlyRevenue = (_stats['monthlyRevenue'] is num)
+        ? (_stats['monthlyRevenue'] as num).toDouble()
         : 0.0;
 
     return RefreshIndicator(
@@ -181,7 +180,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   GridView.count(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -259,13 +258,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   color: Colors.white.withOpacity(0.2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.medical_services, color: Colors.white, size: 28),
+                child: const Icon(
+                  Icons.medical_services,
+                  color: Colors.white,
+                  size: 28,
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.logout, color: Colors.white),
                 onPressed: () {
                   authProvider.logout();
-                  Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/login',
+                    (route) => false,
+                  );
                 },
                 tooltip: 'Logout',
               ),
@@ -290,7 +297,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -319,7 +331,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
           ),
           const SizedBox(height: 4),
           Text(

@@ -1,5 +1,3 @@
-// lib/presentation/screens/restaurant_owner/restaurant_owner_home_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
@@ -101,17 +99,22 @@ class _RestaurantOwnerHomeScreenState extends State<RestaurantOwnerHomeScreen> {
       _isLoading
           ? Center(child: CircularProgressIndicator(color: Colors.blue[800]))
           : _error != null
-              ? Center(child: Text('Error: $_error', style: const TextStyle(color: Colors.red)))
-              : RestaurantOwnerDashboard(
-                  restaurantCount: _restaurantCount,
-                  mealCount: _mealCount,
-                  pendingOrders: _pendingOrders,
-                  onNavigateToAddRestaurant: _navigateToAddRestaurant,
-                  onNavigateToMyRestaurants: _navigateToMyRestaurants,
-                  onNavigateToMeals: () => _onTabTapped(1),
-                  onNavigateToOrders: () => _onTabTapped(2),
-                  onNavigateToStats: () => _onTabTapped(3),
-                ),
+          ? Center(
+              child: Text(
+                'Error: $_error',
+                style: const TextStyle(color: Colors.red),
+              ),
+            )
+          : RestaurantOwnerDashboard(
+              restaurantCount: _restaurantCount,
+              mealCount: _mealCount,
+              pendingOrders: _pendingOrders,
+              onNavigateToAddRestaurant: _navigateToAddRestaurant,
+              onNavigateToMyRestaurants: _navigateToMyRestaurants,
+              onNavigateToMeals: () => _onTabTapped(1),
+              onNavigateToOrders: () => _onTabTapped(2),
+              onNavigateToStats: () => _onTabTapped(3),
+            ),
       // Tab 1: Meals
       const MealsListScreen(),
       // Tab 2: Orders
@@ -123,10 +126,7 @@ class _RestaurantOwnerHomeScreenState extends State<RestaurantOwnerHomeScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       // IndexedStack preserves the state of each tab
-      body: IndexedStack(
-        index: _currentIndex,
-        children: screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -146,7 +146,10 @@ class _RestaurantOwnerHomeScreenState extends State<RestaurantOwnerHomeScreen> {
           selectedItemColor: Colors.blue[800], // Unified Blue Theme
           unselectedItemColor: Colors.grey[400],
           showUnselectedLabels: true,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          selectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
           unselectedLabelStyle: const TextStyle(fontSize: 12),
           elevation: 0,
           items: const [
@@ -237,7 +240,10 @@ class RestaurantOwnerDashboard extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(24, 60, 24, 30),
       decoration: BoxDecoration(
         gradient: LinearGradient(
-          colors: [Colors.blue[900]!, Colors.blue[700]!], // Unified Blue Gradient
+          colors: [
+            Colors.blue[900]!,
+            Colors.blue[700]!,
+          ], // Unified Blue Gradient
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
@@ -265,13 +271,21 @@ class RestaurantOwnerDashboard extends StatelessWidget {
                   color: Colors.white.withOpacity(0.2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.restaurant, color: Colors.white, size: 28),
+                child: const Icon(
+                  Icons.restaurant,
+                  color: Colors.white,
+                  size: 28,
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.logout, color: Colors.white),
                 onPressed: () {
                   authProvider.logout();
-                  Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/login',
+                    (route) => false,
+                  );
                 },
               ),
             ],
@@ -328,7 +342,12 @@ class RestaurantOwnerDashboard extends StatelessWidget {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -358,10 +377,7 @@ class RestaurantOwnerDashboard extends StatelessWidget {
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
-          Text(
-            title,
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-          ),
+          Text(title, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
         ],
       ),
     );
@@ -442,7 +458,10 @@ class RestaurantOwnerDashboard extends StatelessWidget {
               const SizedBox(height: 12),
               Text(
                 item.title,
-                style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
               ),
             ],
           ),

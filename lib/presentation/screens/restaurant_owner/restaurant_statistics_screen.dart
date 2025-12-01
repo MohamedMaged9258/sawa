@@ -1,4 +1,3 @@
-// lib/presentation/screens/restaurant_owner/restaurant_statistics_screen.dart
 import 'package:flutter/material.dart';
 
 class RestaurantStatisticsScreen extends StatelessWidget {
@@ -30,7 +29,7 @@ class RestaurantStatisticsScreen extends StatelessWidget {
                 _buildRow('Total Revenue', '\$2,850.00', Colors.green),
                 _buildRow('This Week', '\$850.00', null),
                 _buildRow('This Month', '\$2,850.00', null),
-              ]
+              ],
             ),
             const SizedBox(height: 16),
             _buildStatSection(
@@ -39,7 +38,7 @@ class RestaurantStatisticsScreen extends StatelessWidget {
                 _buildRow('Total Orders', '112', Colors.blue[800]),
                 _buildRow('Completed', '98', null),
                 _buildRow('Pending', '8', Colors.orange),
-              ]
+              ],
             ),
             const SizedBox(height: 16),
             _buildStatSection(
@@ -48,7 +47,7 @@ class RestaurantStatisticsScreen extends StatelessWidget {
                 _buildRow('Total Customers', '85', Colors.purple),
                 _buildRow('Repeat', '45', null),
                 _buildRow('New This Month', '12', null),
-              ]
+              ],
             ),
           ],
         ),
@@ -56,18 +55,30 @@ class RestaurantStatisticsScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildStatSection({required String title, required List<Widget> items}) {
+  Widget _buildStatSection({
+    required String title,
+    required List<Widget> items,
+  }) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(title, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+          Text(
+            title,
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 16),
           ...items,
         ],
@@ -82,7 +93,14 @@ class RestaurantStatisticsScreen extends StatelessWidget {
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           Text(label, style: TextStyle(color: Colors.grey[600], fontSize: 14)),
-          Text(value, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: valueColor ?? Colors.black87)),
+          Text(
+            value,
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: valueColor ?? Colors.black87,
+            ),
+          ),
         ],
       ),
     );

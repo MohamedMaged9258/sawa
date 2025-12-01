@@ -1,5 +1,3 @@
-// lib/presentation/screens/member/member_gym_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
@@ -15,7 +13,7 @@ class MemberGymScreen extends StatefulWidget {
 
 class _MemberGymScreenState extends State<MemberGymScreen> {
   List<Gym> _gyms = [];
-  List<Gym> _filteredGyms = []; 
+  List<Gym> _filteredGyms = [];
   bool _isLoading = true;
   String? _error;
 
@@ -83,7 +81,7 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
           backgroundColor: Colors.blue[800], // Blue Toast
         ),
       );
-      Navigator.pop(context); 
+      Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -115,7 +113,9 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
           ),
           ElevatedButton(
             onPressed: () => _bookGym(gym),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]), // Blue Button
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[800],
+            ), // Blue Button
             child: const Text('Confirm', style: TextStyle(color: Colors.white)),
           ),
         ],
@@ -130,7 +130,7 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50], 
+      backgroundColor: Colors.grey[50],
       body: Column(
         children: [
           Container(
@@ -143,14 +143,20 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
               decoration: InputDecoration(
                 hintText: 'Find your gym...',
                 hintStyle: TextStyle(color: Colors.grey[400]),
-                prefixIcon: Icon(Icons.search, color: Colors.blue[800]), // Blue Icon
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: Colors.blue[800],
+                ), // Blue Icon
                 filled: true,
                 fillColor: Colors.grey[100],
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(15),
                   borderSide: BorderSide.none,
                 ),
-                contentPadding: const EdgeInsets.symmetric(vertical: 0, horizontal: 20),
+                contentPadding: const EdgeInsets.symmetric(
+                  vertical: 0,
+                  horizontal: 20,
+                ),
               ),
               onChanged: _filterGyms,
             ),
@@ -158,7 +164,9 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
 
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator(color: Colors.blue[800]))
+                ? Center(
+                    child: CircularProgressIndicator(color: Colors.blue[800]),
+                  )
                 : _error != null
                 ? Center(child: Text('Error: $_error'))
                 : _filteredGyms.isEmpty
@@ -201,7 +209,9 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
               Stack(
                 children: [
                   ClipRRect(
-                    borderRadius: const BorderRadius.vertical(top: Radius.circular(20)),
+                    borderRadius: const BorderRadius.vertical(
+                      top: Radius.circular(20),
+                    ),
                     child: Container(
                       height: 180,
                       width: double.infinity,
@@ -210,21 +220,35 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
                           ? Image.network(
                               gym.photo,
                               fit: BoxFit.cover,
-                              errorBuilder: (c, o, s) => Icon(Icons.fitness_center, size: 50, color: Colors.blue[200]),
+                              errorBuilder: (c, o, s) => Icon(
+                                Icons.fitness_center,
+                                size: 50,
+                                color: Colors.blue[200],
+                              ),
                             )
-                          : Icon(Icons.fitness_center, size: 50, color: Colors.blue[200]),
+                          : Icon(
+                              Icons.fitness_center,
+                              size: 50,
+                              color: Colors.blue[200],
+                            ),
                     ),
                   ),
                   Positioned(
                     top: 16,
                     right: 16,
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 6,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(20),
                         boxShadow: [
-                          BoxShadow(color: Colors.black.withOpacity(0.1), blurRadius: 4),
+                          BoxShadow(
+                            color: Colors.black.withOpacity(0.1),
+                            blurRadius: 4,
+                          ),
                         ],
                       ),
                       child: Text(
@@ -239,7 +263,7 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
                   ),
                 ],
               ),
-              
+
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -264,7 +288,10 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
                           children: [
                             Icon(Icons.star, color: Colors.amber, size: 18),
                             SizedBox(width: 4),
-                            Text("4.8", style: TextStyle(fontWeight: FontWeight.bold)),
+                            Text(
+                              "4.8",
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
                           ],
                         ),
                       ],
@@ -272,12 +299,19 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
                     const SizedBox(height: 8),
                     Row(
                       children: [
-                        Icon(Icons.location_on, color: Colors.grey[400], size: 16),
+                        Icon(
+                          Icons.location_on,
+                          color: Colors.grey[400],
+                          size: 16,
+                        ),
                         const SizedBox(width: 4),
                         Expanded(
                           child: Text(
                             gym.location,
-                            style: TextStyle(color: Colors.grey[600], fontSize: 14),
+                            style: TextStyle(
+                              color: Colors.grey[600],
+                              fontSize: 14,
+                            ),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -300,7 +334,10 @@ class _MemberGymScreenState extends State<MemberGymScreen> {
                         ),
                         child: const Text(
                           'Book Session',
-                          style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
                       ),
                     ),

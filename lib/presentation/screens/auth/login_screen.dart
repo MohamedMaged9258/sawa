@@ -20,43 +20,40 @@ class _LoginScreenState extends State<LoginScreen> {
   void _navigateToRoleScreen(String role, BuildContext context) {
     switch (role) {
       case 'member':
-        Navigator.pushNamedAndRemoveUntil(context, '/member-home', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/member-home',
+          (route) => false,
+        );
         break;
       case 'gymOwner':
-        Navigator.pushNamedAndRemoveUntil(context, '/gym-owner-home', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/gym-owner-home',
+          (route) => false,
+        );
         break;
       case 'restaurantOwner':
-        Navigator.pushNamedAndRemoveUntil(context, '/restaurant-owner-home', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/restaurant-owner-home',
+          (route) => false,
+        );
         break;
       case 'nutritionist':
-        Navigator.pushNamedAndRemoveUntil(context, '/nutritionist-home', (route) => false);
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          '/nutritionist-home',
+          (route) => false,
+        );
         break;
       default:
         // Stay on login or show error if role is unknown
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Unknown user role. Please contact support.')),
-        );
-    }
-  }
-
-  Future<void> _handleLogin(AuthProvider authProvider) async {
-    if (_formKey.currentState!.validate()) {
-      try {
-        await authProvider.login(
-          _emailController.text.trim(),
-          _passwordController.text.trim(),
-        );
-        // Navigation is handled by the post-frame callback in build method
-        // based on authProvider.currentUserRole change
-      } catch (e) {
-        if (!mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            backgroundColor: Colors.red,
+          const SnackBar(
+            content: Text('Unknown user role. Please contact support.'),
           ),
         );
-      }
     }
   }
 
@@ -128,9 +125,14 @@ class _LoginScreenState extends State<LoginScreen> {
                 Consumer<AuthProvider>(
                   builder: (context, authProvider, child) {
                     // Logic to handle redirection
-                    if (authProvider.currentUserRole != null && !authProvider.isLoading && authProvider.user != null) {
+                    if (authProvider.currentUserRole != null &&
+                        !authProvider.isLoading &&
+                        authProvider.user != null) {
                       WidgetsBinding.instance.addPostFrameCallback((_) {
-                        _navigateToRoleScreen(authProvider.currentUserRole!, context);
+                        _navigateToRoleScreen(
+                          authProvider.currentUserRole!,
+                          context,
+                        );
                       });
                     }
 
@@ -164,7 +166,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       onPressed: () {
                         Navigator.push(
                           context,
-                          MaterialPageRoute(builder: (context) => const RegisterScreen()),
+                          MaterialPageRoute(
+                            builder: (context) => const RegisterScreen(),
+                          ),
                         );
                       },
                       child: const Text('Sign Up'),

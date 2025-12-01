@@ -1,5 +1,3 @@
-// lib/presentation/screens/member/member_restaurant_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
@@ -71,7 +69,7 @@ class _MemberRestaurantScreenState extends State<MemberRestaurantScreen> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (context) => Container(
-         decoration: const BoxDecoration(
+        decoration: const BoxDecoration(
           color: Colors.white,
           borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
         ),
@@ -91,7 +89,10 @@ class _MemberRestaurantScreenState extends State<MemberRestaurantScreen> {
             child: TextField(
               decoration: InputDecoration(
                 hintText: 'Search restaurants...',
-                prefixIcon: Icon(Icons.search, color: Colors.blue[800]), // Blue Icon
+                prefixIcon: Icon(
+                  Icons.search,
+                  color: Colors.blue[800],
+                ), // Blue Icon
                 filled: true,
                 fillColor: Colors.white,
                 enabledBorder: OutlineInputBorder(
@@ -100,7 +101,9 @@ class _MemberRestaurantScreenState extends State<MemberRestaurantScreen> {
                 ),
                 focusedBorder: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(12),
-                  borderSide: BorderSide(color: Colors.blue[800]!), // Blue Border
+                  borderSide: BorderSide(
+                    color: Colors.blue[800]!,
+                  ), // Blue Border
                 ),
               ),
               onChanged: _filterRestaurants,
@@ -108,7 +111,9 @@ class _MemberRestaurantScreenState extends State<MemberRestaurantScreen> {
           ),
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator(color: Colors.blue[800]))
+                ? Center(
+                    child: CircularProgressIndicator(color: Colors.blue[800]),
+                  )
                 : _error != null
                 ? Center(child: Text('Error: $_error'))
                 : _filteredRestaurants.isEmpty
@@ -139,7 +144,9 @@ class _MemberRestaurantScreenState extends State<MemberRestaurantScreen> {
           children: [
             // Image
             ClipRRect(
-              borderRadius: const BorderRadius.vertical(top: Radius.circular(16)),
+              borderRadius: const BorderRadius.vertical(
+                top: Radius.circular(16),
+              ),
               child: Container(
                 height: 160,
                 width: double.infinity,
@@ -149,13 +156,25 @@ class _MemberRestaurantScreenState extends State<MemberRestaurantScreen> {
                         restaurant.photo,
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
-                          return Center(child: Icon(Icons.restaurant, size: 50, color: Colors.blue[200]));
+                          return Center(
+                            child: Icon(
+                              Icons.restaurant,
+                              size: 50,
+                              color: Colors.blue[200],
+                            ),
+                          );
                         },
                       )
-                    : Center(child: Icon(Icons.restaurant, size: 50, color: Colors.blue[200])),
+                    : Center(
+                        child: Icon(
+                          Icons.restaurant,
+                          size: 50,
+                          color: Colors.blue[200],
+                        ),
+                      ),
               ),
             ),
-            
+
             // Details
             Padding(
               padding: const EdgeInsets.all(16.0),
@@ -191,7 +210,10 @@ class _MemberRestaurantScreenState extends State<MemberRestaurantScreen> {
                       Expanded(
                         child: Text(
                           restaurant.location,
-                          style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: Colors.grey[600],
+                          ),
                           overflow: TextOverflow.ellipsis,
                         ),
                       ),
@@ -204,7 +226,9 @@ class _MemberRestaurantScreenState extends State<MemberRestaurantScreen> {
                       onPressed: () => _showMenuAndOrder(restaurant),
                       style: OutlinedButton.styleFrom(
                         foregroundColor: Colors.blue[800], // Blue Text
-                        side: BorderSide(color: Colors.blue[800]!), // Blue Border
+                        side: BorderSide(
+                          color: Colors.blue[800]!,
+                        ), // Blue Border
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(8),
                         ),
@@ -267,7 +291,7 @@ class _RestaurantMenuSheetState extends State<RestaurantMenuSheet> {
       );
 
       if (!mounted) return;
-      Navigator.pop(context); 
+      Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text('Ordered ${meal.name} successfully!'),
@@ -292,9 +316,12 @@ class _RestaurantMenuSheetState extends State<RestaurantMenuSheet> {
       child: Column(
         children: [
           Container(
-            width: 40, 
-            height: 4, 
-            decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(2)),
+            width: 40,
+            height: 4,
+            decoration: BoxDecoration(
+              color: Colors.grey[300],
+              borderRadius: BorderRadius.circular(2),
+            ),
           ),
           const SizedBox(height: 16),
           Text(
@@ -304,7 +331,9 @@ class _RestaurantMenuSheetState extends State<RestaurantMenuSheet> {
           const Divider(),
           Expanded(
             child: _isLoading
-                ? Center(child: CircularProgressIndicator(color: Colors.blue[800]))
+                ? Center(
+                    child: CircularProgressIndicator(color: Colors.blue[800]),
+                  )
                 : _meals.isEmpty
                 ? const Center(child: Text("No meals available."))
                 : ListView.builder(

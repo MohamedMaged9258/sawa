@@ -1,5 +1,3 @@
-// lib/presentation/screens/member/member_meal_plans_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
@@ -57,28 +55,28 @@ class _MemberMealPlansScreenState extends State<MemberMealPlansScreen> {
         child: _isLoading
             ? Center(child: CircularProgressIndicator(color: Colors.blue[800]))
             : _error != null
-                ? Center(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text('Error: $_error'),
-                        const SizedBox(height: 16),
-                        ElevatedButton(
-                          onPressed: _fetchMealPlans,
-                          child: const Text('Retry'),
-                        ),
-                      ],
+            ? Center(
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('Error: $_error'),
+                    const SizedBox(height: 16),
+                    ElevatedButton(
+                      onPressed: _fetchMealPlans,
+                      child: const Text('Retry'),
                     ),
-                  )
-                : _mealPlans.isEmpty
-                    ? const Center(child: Text('No meal plans assigned yet.'))
-                    : ListView.builder(
-                        padding: const EdgeInsets.all(16),
-                        itemCount: _mealPlans.length,
-                        itemBuilder: (context, index) {
-                          return _buildMealPlanCard(_mealPlans[index]);
-                        },
-                      ),
+                  ],
+                ),
+              )
+            : _mealPlans.isEmpty
+            ? const Center(child: Text('No meal plans assigned yet.'))
+            : ListView.builder(
+                padding: const EdgeInsets.all(16),
+                itemCount: _mealPlans.length,
+                itemBuilder: (context, index) {
+                  return _buildMealPlanCard(_mealPlans[index]);
+                },
+              ),
       ),
     );
   }
@@ -118,10 +116,7 @@ class _MemberMealPlansScreenState extends State<MemberMealPlansScreen> {
                       const SizedBox(height: 4),
                       Text(
                         'Nutritionist: ${plan.clientName}',
-                        style: TextStyle(
-                          color: Colors.grey[600],
-                          fontSize: 14,
-                        ),
+                        style: TextStyle(color: Colors.grey[600], fontSize: 14),
                       ),
                     ],
                   ),
@@ -152,10 +147,7 @@ class _MemberMealPlansScreenState extends State<MemberMealPlansScreen> {
             const SizedBox(height: 12),
             Text(
               plan.description,
-              style: TextStyle(
-                color: Colors.grey[700],
-                fontSize: 14,
-              ),
+              style: TextStyle(color: Colors.grey[700], fontSize: 14),
             ),
             const SizedBox(height: 16),
             ExpansionTile(
@@ -163,9 +155,7 @@ class _MemberMealPlansScreenState extends State<MemberMealPlansScreen> {
                 'Daily Meal Plan',
                 style: TextStyle(fontWeight: FontWeight.w500),
               ),
-              children: [
-                ..._buildDailyMeals(plan.dailyMeals),
-              ],
+              children: [..._buildDailyMeals(plan.dailyMeals)],
             ),
           ],
         ),
@@ -184,8 +174,9 @@ class _MemberMealPlansScreenState extends State<MemberMealPlansScreen> {
     }
 
     final meals = <Widget>[];
-    
-    if (dailyMeals.containsKey('breakfast') && dailyMeals['breakfast']!.isNotEmpty) {
+
+    if (dailyMeals.containsKey('breakfast') &&
+        dailyMeals['breakfast']!.isNotEmpty) {
       meals.add(
         ListTile(
           leading: const Icon(Icons.free_breakfast, color: Colors.amber),
@@ -194,7 +185,7 @@ class _MemberMealPlansScreenState extends State<MemberMealPlansScreen> {
         ),
       );
     }
-    
+
     if (dailyMeals.containsKey('lunch') && dailyMeals['lunch']!.isNotEmpty) {
       meals.add(
         ListTile(
@@ -204,7 +195,7 @@ class _MemberMealPlansScreenState extends State<MemberMealPlansScreen> {
         ),
       );
     }
-    
+
     if (dailyMeals.containsKey('dinner') && dailyMeals['dinner']!.isNotEmpty) {
       meals.add(
         ListTile(
@@ -214,7 +205,7 @@ class _MemberMealPlansScreenState extends State<MemberMealPlansScreen> {
         ),
       );
     }
-    
+
     if (dailyMeals.containsKey('snacks') && dailyMeals['snacks']!.isNotEmpty) {
       meals.add(
         ListTile(

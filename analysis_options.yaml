@@ -2,6 +2,7 @@ analyzer:
   exclude:
     - "**/*.mocks.dart"
   errors:
+    deprecated_member_use: ignore
     unused_import: ignore
     unused_local_variable: ignore
 

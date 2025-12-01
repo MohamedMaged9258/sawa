@@ -1,7 +1,3 @@
-// lib/presentation/screens/gym_owner/gym_owner_home_screen.dart
-
-// ignore_for_file: duplicate_import, deprecated_member_use
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
@@ -45,9 +41,9 @@ class _GymOwnerHomeScreenState extends State<GymOwnerHomeScreen> {
       if (ownerId == null || ownerId.isEmpty) {
         throw Exception("User is not logged in.");
       }
-      
+
       final stats = await GymProvider.getStatistics(ownerId);
-      
+
       if (!mounted) return;
 
       setState(() {
@@ -95,17 +91,22 @@ class _GymOwnerHomeScreenState extends State<GymOwnerHomeScreen> {
       _isLoading
           ? Center(child: CircularProgressIndicator(color: Colors.blue[800]))
           : _error != null
-              ? Center(child: Text('Error: $_error', style: const TextStyle(color: Colors.red)))
-              : GymOwnerDashboard(
-                  gymCount: _gymCount,
-                  coachCount: _coachCount,
-                  memberCount: _memberCount,
-                  onNavigateToAddGym: _navigateToAddGym,
-                  // These callbacks now switch tabs instead of pushing screens
-                  onNavigateToGymDetails: () => _onTabTapped(1),
-                  onNavigateToCoachesList: () => _onTabTapped(2),
-                  onNavigateToStatistics: () => _onTabTapped(3),
-                ),
+          ? Center(
+              child: Text(
+                'Error: $_error',
+                style: const TextStyle(color: Colors.red),
+              ),
+            )
+          : GymOwnerDashboard(
+              gymCount: _gymCount,
+              coachCount: _coachCount,
+              memberCount: _memberCount,
+              onNavigateToAddGym: _navigateToAddGym,
+              // These callbacks now switch tabs instead of pushing screens
+              onNavigateToGymDetails: () => _onTabTapped(1),
+              onNavigateToCoachesList: () => _onTabTapped(2),
+              onNavigateToStatistics: () => _onTabTapped(3),
+            ),
       // Tab 1: My Gyms
       const GymDetailsScreen(),
       // Tab 2: Coaches
@@ -117,10 +118,7 @@ class _GymOwnerHomeScreenState extends State<GymOwnerHomeScreen> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       // We use IndexedStack to keep the state of tabs alive (optional, but good for performance)
-      body: IndexedStack(
-        index: _currentIndex,
-        children: screens,
-      ),
+      body: IndexedStack(index: _currentIndex, children: screens),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -140,7 +138,10 @@ class _GymOwnerHomeScreenState extends State<GymOwnerHomeScreen> {
           selectedItemColor: Colors.blue[800], // Premium Blue
           unselectedItemColor: Colors.grey[400],
           showUnselectedLabels: true,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          selectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
           unselectedLabelStyle: const TextStyle(fontSize: 12),
           elevation: 0,
           items: const [
@@ -257,13 +258,21 @@ class GymOwnerDashboard extends StatelessWidget {
                   color: Colors.white.withOpacity(0.2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.business_center, color: Colors.white, size: 28),
+                child: const Icon(
+                  Icons.business_center,
+                  color: Colors.white,
+                  size: 28,
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.logout, color: Colors.white),
                 onPressed: () {
                   authProvider.logout();
-                  Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/login',
+                    (route) => false,
+                  );
                 },
               ),
             ],
@@ -290,16 +299,42 @@ class GymOwnerDashboard extends StatelessWidget {
   Widget _buildStatisticsOverview() {
     return Row(
       children: [
-        Expanded(child: _buildStatCard('Gyms', gymCount.toString(), Icons.fitness_center, Colors.blue)),
+        Expanded(
+          child: _buildStatCard(
+            'Gyms',
+            gymCount.toString(),
+            Icons.fitness_center,
+            Colors.blue,
+          ),
+        ),
         const SizedBox(width: 12),
-        Expanded(child: _buildStatCard('Coaches', coachCount.toString(), Icons.people, Colors.purple)),
+        Expanded(
+          child: _buildStatCard(
+            'Coaches',
+            coachCount.toString(),
+            Icons.people,
+            Colors.purple,
+          ),
+        ),
         const SizedBox(width: 12),
-        Expanded(child: _buildStatCard('Members', memberCount.toString(), Icons.groups, Colors.orange)),
+        Expanded(
+          child: _buildStatCard(
+            'Members',
+            memberCount.toString(),
+            Icons.groups,
+            Colors.orange,
+          ),
+        ),
       ],
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -317,11 +352,17 @@ class GymOwnerDashboard extends StatelessWidget {
         children: [
           Container(
             padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(color: color.withOpacity(0.1), shape: BoxShape.circle),
+            decoration: BoxDecoration(
+              color: color.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
             child: Icon(icon, color: color, size: 20),
           ),
           const SizedBox(height: 12),
-          Text(value, style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+          Text(
+            value,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
           const SizedBox(height: 4),
           Text(title, style: TextStyle(fontSize: 12, color: Colors.grey[600])),
         ],
@@ -332,10 +373,30 @@ class GymOwnerDashboard extends StatelessWidget {
   Widget _buildDashboardGrid(BuildContext context) {
     // Grid items now trigger the callbacks provided by the parent Screen
     final List<DashboardItem> items = [
-      DashboardItem(title: 'Add Gym', icon: Icons.add_location_alt, color: Colors.blue[700]!, onTap: onNavigateToAddGym),
-      DashboardItem(title: 'Coaches', icon: Icons.sports_gymnastics, color: Colors.purple[600]!, onTap: onNavigateToCoachesList),
-      DashboardItem(title: 'My Gyms', icon: Icons.store, color: Colors.orange[700]!, onTap: onNavigateToGymDetails),
-      DashboardItem(title: 'Analytics', icon: Icons.bar_chart, color: Colors.red[600]!, onTap: onNavigateToStatistics),
+      DashboardItem(
+        title: 'Add Gym',
+        icon: Icons.add_location_alt,
+        color: Colors.blue[700]!,
+        onTap: onNavigateToAddGym,
+      ),
+      DashboardItem(
+        title: 'Coaches',
+        icon: Icons.sports_gymnastics,
+        color: Colors.purple[600]!,
+        onTap: onNavigateToCoachesList,
+      ),
+      DashboardItem(
+        title: 'My Gyms',
+        icon: Icons.store,
+        color: Colors.orange[700]!,
+        onTap: onNavigateToGymDetails,
+      ),
+      DashboardItem(
+        title: 'Analytics',
+        icon: Icons.bar_chart,
+        color: Colors.red[600]!,
+        onTap: onNavigateToStatistics,
+      ),
     ];
 
     return GridView.builder(
@@ -376,11 +437,20 @@ class GymOwnerDashboard extends StatelessWidget {
               Container(
                 width: 50,
                 height: 50,
-                decoration: BoxDecoration(color: item.color.withOpacity(0.1), shape: BoxShape.circle),
+                decoration: BoxDecoration(
+                  color: item.color.withOpacity(0.1),
+                  shape: BoxShape.circle,
+                ),
                 child: Icon(item.icon, color: item.color, size: 26),
               ),
               const SizedBox(height: 12),
-              Text(item.title, style: const TextStyle(fontSize: 15, fontWeight: FontWeight.bold)),
+              Text(
+                item.title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ],
           ),
         ),
@@ -394,5 +464,10 @@ class DashboardItem {
   final IconData icon;
   final Color color;
   final VoidCallback onTap;
-  DashboardItem({required this.title, required this.icon, required this.color, required this.onTap});
+  DashboardItem({
+    required this.title,
+    required this.icon,
+    required this.color,
+    required this.onTap,
+  });
 }
