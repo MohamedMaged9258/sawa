@@ -1,3 +1,5 @@
+// lib/presentation/screens/auth/login_screen.dart
+
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/screens/auth/register_screen.dart';
@@ -20,41 +22,32 @@ class _LoginScreenState extends State<LoginScreen> {
   void _navigateToRoleScreen(String role, BuildContext context) {
     switch (role) {
       case 'member':
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/member-home',
-          (route) => false,
-        );
+        Navigator.pushNamedAndRemoveUntil(context, '/member-home', (route) => false);
         break;
       case 'gymOwner':
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/gym-owner-home',
-          (route) => false,
-        );
+        Navigator.pushNamedAndRemoveUntil(context, '/gym-owner-home', (route) => false);
         break;
       case 'restaurantOwner':
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/restaurant-owner-home',
-          (route) => false,
-        );
+        Navigator.pushNamedAndRemoveUntil(context, '/restaurant-owner-home', (route) => false);
         break;
       case 'nutritionist':
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/nutritionist-home',
-          (route) => false,
-        );
+        Navigator.pushNamedAndRemoveUntil(context, '/nutritionist-home', (route) => false);
         break;
       default:
-        // Stay on login or show error if role is unknown
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Unknown user role. Please contact support.'),
-          ),
+          const SnackBar(content: Text('Unknown user role. Please contact support.')),
         );
     }
+  }
+
+  void _showErrorSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -96,35 +89,14 @@ class _LoginScreenState extends State<LoginScreen> {
                     if (value == null || value.isEmpty) {
                       return 'Please enter password';
                     }
-                    if (value.length < 6) {
-                      return 'Password must be at least 6 characters';
-                    }
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
-                // Error message display
+                const SizedBox(height: 24),
+                
                 Consumer<AuthProvider>(
                   builder: (context, authProvider, child) {
-                    if (authProvider.errorMessage != null) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Text(
-                          authProvider.errorMessage!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 14,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
-                Consumer<AuthProvider>(
-                  builder: (context, authProvider, child) {
-                    // Logic to handle redirection
+                    // Handle Navigation
                     if (authProvider.currentUserRole != null &&
                         !authProvider.isLoading &&
                         authProvider.user != null) {
@@ -139,12 +111,24 @@ class _LoginScreenState extends State<LoginScreen> {
                     return CustomButton(
                       text: 'Login',
                       isLoading: authProvider.isLoading,
-                      onPressed: () {
+                      onPressed: () async {
                         if (_formKey.currentState!.validate()) {
-                          authProvider.login(
-                            _emailController.text.trim(),
-                            _passwordController.text.trim(),
-                          );
+                          try {
+                            await authProvider.login(
+                              _emailController.text.trim(),
+                              _passwordController.text.trim(),
+                            );
+                          } catch (e) {
+                            // Show error
+                            if (context.mounted) {
+                              _showErrorSnackBar(
+                                context,
+                                authProvider.errorMessage ?? 'Login failed',
+                              );
+                              // Clear password field on error so user can retry
+                              _passwordController.clear();
+                            }
+                          }
                         }
                       },
                     );

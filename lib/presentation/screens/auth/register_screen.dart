@@ -1,7 +1,8 @@
+import 'package:firebase_auth/firebase_auth.dart' hide AuthProvider;
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../../presentation/providers/auth_provider.dart';
-import '../../../presentation/widgets/custom_button.dart';
+import '../../widgets/custom_button.dart';
 import '../../../presentation/widgets/custom_textfield.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -69,6 +70,16 @@ class _RegisterScreenState extends State<RegisterScreen> {
       default:
         Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     }
+  }
+
+  void _showErrorSnackBar(BuildContext context, String message) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        behavior: SnackBarBehavior.floating,
+      ),
+    );
   }
 
   @override
@@ -203,28 +214,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 16),
-                // Error message display
+                const SizedBox(height: 24),
+
                 Consumer<AuthProvider>(
-                  builder: (context, authProvider, child) {
-                    if (authProvider.errorMessage != null) {
-                      return Padding(
-                        padding: const EdgeInsets.only(bottom: 16),
-                        child: Text(
-                          authProvider.errorMessage!,
-                          style: const TextStyle(
-                            color: Colors.red,
-                            fontSize: 14,
-                          ),
-                          textAlign: TextAlign.center,
-                        ),
-                      );
-                    }
-                    return const SizedBox.shrink();
-                  },
-                ),
-                Consumer<AuthProvider>(
-                  builder: (context, authProvider, child) {
+                  builder: (context, authProvider, _) {
                     if (authProvider.currentUserRole != null &&
                         !authProvider.isLoading &&
                         authProvider.user != null) {
@@ -240,14 +233,37 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       isLoading: authProvider.isLoading,
                       onPressed: _selectedRole == null
                           ? null
-                          : () {
+                          : () async {
                               if (_formKey.currentState!.validate()) {
-                                authProvider.register(
-                                  email: _emailController.text.trim(),
-                                  name: _nameController.text.trim(),
-                                  password: _passwordController.text.trim(),
-                                  role: _selectedRole!,
-                                );
+                                try {
+                                  await authProvider.register(
+                                    email: _emailController.text.trim(),
+                                    name: _nameController.text.trim(),
+                                    password: _passwordController.text.trim(),
+                                    role: _selectedRole!,
+                                  );
+                                } on FirebaseAuthException catch (e) {
+                                  if (context.mounted) {
+                                    _showErrorSnackBar(
+                                      context,
+                                      authProvider.errorMessage ?? 'Error',
+                                    );
+
+                                    // Clear fields based on specific error code
+                                    if (e.code == 'weak-password') {
+                                      _passwordController.clear();
+                                      _confirmPasswordController.clear();
+                                    }
+                                    // Note: If 'email-already-in-use', we usually let user change it rather than clearing it.
+                                  }
+                                } catch (e) {
+                                  if (context.mounted) {
+                                    _showErrorSnackBar(
+                                      context,
+                                      'Registration failed. Please try again.',
+                                    );
+                                  }
+                                }
                               }
                             },
                     );
