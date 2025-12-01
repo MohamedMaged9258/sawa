@@ -27,8 +27,8 @@ class AuthProvider with ChangeNotifier {
 
   // Constructor with optional dependencies for testing
   AuthProvider({FirebaseAuth? auth, FirebaseFirestore? firestore})
-      : _auth = auth ?? FirebaseAuth.instance,
-        _firestore = firestore ?? FirebaseFirestore.instance {
+    : _auth = auth ?? FirebaseAuth.instance,
+      _firestore = firestore ?? FirebaseFirestore.instance {
     _authStateSubscription = _auth.authStateChanges().listen(
       _onAuthStateChanged,
     );
@@ -169,6 +169,8 @@ class AuthProvider with ChangeNotifier {
         return 'No user found with this email.';
       case 'wrong-password':
         return 'Incorrect password.';
+      case 'invalid-credential':
+        return 'Invalid email or password.';
       case 'email-already-in-use':
         return 'An account already exists with this email.';
       case 'operation-not-allowed':

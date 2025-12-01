@@ -5,12 +5,12 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
-import 'package:sawa/presentation/providers/member_provider.dart'; // NEW
-import 'package:sawa/presentation/models/member_models.dart'; // NEW
+import 'package:sawa/presentation/providers/member_provider.dart';
+import 'package:sawa/presentation/models/member_models.dart';
 import '../member/member_gym_screen.dart';
 import '../member/member_restaurant_screen.dart';
 import '../member/member_nutritionist_screen.dart';
-import '../member/member_meal_plans_screen.dart'; // NEW
+import '../member/member_meal_plans_screen.dart';
 
 class MemberHomeScreen extends StatefulWidget {
   const MemberHomeScreen({super.key});
@@ -22,13 +22,12 @@ class MemberHomeScreen extends StatefulWidget {
 class _MemberHomeScreenState extends State<MemberHomeScreen> {
   int _currentIndex = 0;
 
-  // We will pass the current stats to the DashboardScreen
   final List<Widget> _screens = [
-    const DashboardScreen(), // This will now handle its own data fetching or be re-built
+    const DashboardScreen(),
     const MemberGymScreen(),
     const MemberRestaurantScreen(),
     const MemberNutritionistScreen(),
-    const MemberMealPlansScreen(), // NEW
+    const MemberMealPlansScreen(),
   ];
 
   @override
@@ -55,7 +54,7 @@ class _MemberHomeScreenState extends State<MemberHomeScreen> {
         ],
       ),
       body: _currentIndex == 0
-          ? const DashboardScreen() // Re-instantiate to trigger initState/fetch
+          ? const DashboardScreen()
           : _screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
@@ -103,7 +102,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
   bool _isError = false;
   String _errorMessage = '';
   Map<String, dynamic> _stats = {};
-  String? _error;
 
   @override
   void initState() {
@@ -142,19 +140,18 @@ class _DashboardScreenState extends State<DashboardScreen> {
     }
   }
 
+  /// Helper to format Date and Time based on device settings (12h/24h)
+  String _formatDateTime(BuildContext context, DateTime date) {
+    final dateStr = "${date.day}/${date.month}/${date.year}";
+    // TimeOfDay.format(context) automatically uses the device's 12h/24h setting
+    final timeStr = TimeOfDay.fromDateTime(date).format(context);
+    return "$dateStr at $timeStr";
+  }
+
   @override
   Widget build(BuildContext context) {
     if (_isLoading) {
-      return const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            CircularProgressIndicator(),
-            SizedBox(height: 16),
-            Text('Loading dashboard...'),
-          ],
-        ),
-      );
+      return const Center(child: CircularProgressIndicator());
     }
 
     if (_isError) {
@@ -164,19 +161,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(
-                Icons.error_outline,
-                color: Colors.red,
-                size: 48,
-              ),
+              const Icon(Icons.error_outline, color: Colors.red, size: 48),
               const SizedBox(height: 16),
               Text(
                 _errorMessage,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
-                  color: Colors.red,
-                  fontSize: 16,
-                ),
+                style: const TextStyle(color: Colors.red),
               ),
               const SizedBox(height: 24),
               ElevatedButton(
@@ -189,7 +179,6 @@ class _DashboardScreenState extends State<DashboardScreen> {
       );
     }
 
-    // Extract data safely
     final int gymVisits = _stats['gymVisits'] ?? 0;
     final int mealsOrdered = _stats['mealsOrdered'] ?? 0;
     final int nutritionistSessions = _stats['nutritionistSessions'] ?? 0;
@@ -262,7 +251,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
             ),
             const SizedBox(height: 24),
 
-            // Quick Stats
+            // Quick Stats Grid
             const Text(
               'Quick Stats',
               style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
@@ -288,7 +277,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   Colors.orange,
                 ),
                 _buildStatCard(
-                  'Nutritionist Sessions',
+                  'Sessions',
                   nutritionistSessions.toString(),
                   Icons.medical_services,
                   Colors.purple,
@@ -312,9 +301,17 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
             if (nextAppt != null)
               _buildAppointmentCard(
-                nextAppt.serviceName,
-                nextAppt.type,
-                _formatDate(nextAppt.date),
+                // 1. Type
+                nextAppt.type == 'Gym' ? 'Gym Session' : 'Consultation',
+
+                // 2. Name (Updated Logic)
+                nextAppt.type == 'Nutritionist'
+                    ? 'with Doctor: ${nextAppt.serviceName}' // <--- CHANGED
+                    : nextAppt.serviceName,
+
+                // 3. Date & Time (Already checks device format)
+                _formatDateTime(context, nextAppt.date),
+
                 nextAppt.type == 'Gym'
                     ? Icons.fitness_center
                     : Icons.medical_services,
@@ -391,18 +388,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
+  // --- UPDATED APPOINTMENT CARD ---
   Widget _buildAppointmentCard(
-    String title,
-    String subtitle,
-    String time,
+    String type, // "Consultation"
+    String name, // "Dr. Smith"
+    String dateTime, // "12/12/2024 at 10:00 AM"
     IconData icon,
     Color color,
   ) {
     return Card(
       elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Container(
               width: 50,
@@ -411,33 +411,54 @@ class _DashboardScreenState extends State<DashboardScreen> {
                 color: color.withOpacity(0.1),
                 shape: BoxShape.circle,
               ),
-              child: Icon(icon, color: color, size: 24),
+              child: Icon(icon, color: color, size: 28),
             ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // 1. Type (Small, colored)
                   Text(
-                    title,
-                    style: const TextStyle(
-                      fontSize: 16,
+                    type.toUpperCase(),
+                    style: TextStyle(
+                      fontSize: 11,
+                      color: color,
                       fontWeight: FontWeight.bold,
+                      letterSpacing: 0.5,
                     ),
                   ),
                   const SizedBox(height: 4),
+
+                  // 2. Doctor/Gym Name (Large, Bold)
                   Text(
-                    subtitle,
-                    style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    time,
+                    name,
                     style: const TextStyle(
-                      fontSize: 12,
-                      color: Colors.blue,
-                      fontWeight: FontWeight.w500,
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.black87,
                     ),
+                  ),
+                  const SizedBox(height: 6),
+
+                  // 3. Date and Time (With Icon)
+                  Row(
+                    children: [
+                      Icon(
+                        Icons.access_time,
+                        size: 14,
+                        color: Colors.grey[600],
+                      ),
+                      const SizedBox(width: 4),
+                      Text(
+                        dateTime,
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: Colors.grey[700],
+                          fontWeight: FontWeight.w500,
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
