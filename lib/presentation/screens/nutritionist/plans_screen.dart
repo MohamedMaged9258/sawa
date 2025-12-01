@@ -1,5 +1,3 @@
-// lib/presentation/screens/nutritionist/plans_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
@@ -33,11 +31,17 @@ class _PlansScreenState extends State<PlansScreen> {
     });
 
     try {
-      final nutritionistId = Provider.of<AuthProvider>(context, listen: false).uid;
-      if (nutritionistId == null || nutritionistId.isEmpty) throw Exception("User not logged in.");
-      
-      final fetchedPlans = await NutritionistProvider.fetchPlansByNutritionist(nutritionistId);
-      
+      final nutritionistId = Provider.of<AuthProvider>(
+        context,
+        listen: false,
+      ).uid;
+      if (nutritionistId == null || nutritionistId.isEmpty)
+        throw Exception("User not logged in.");
+
+      final fetchedPlans = await NutritionistProvider.fetchPlansByNutritionist(
+        nutritionistId,
+      );
+
       if (!mounted) return;
       setState(() {
         _plans = fetchedPlans;
@@ -52,11 +56,15 @@ class _PlansScreenState extends State<PlansScreen> {
     }
   }
 
-  Future<void> _navigateOrCreatePlan({MealPlan? plan, bool isEditing = false}) async {
+  Future<void> _navigateOrCreatePlan({
+    MealPlan? plan,
+    bool isEditing = false,
+  }) async {
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (context) => CreateEditPlanScreen(isEditing: isEditing, plan: plan),
+        builder: (context) =>
+            CreateEditPlanScreen(isEditing: isEditing, plan: plan),
       ),
     );
     if (result == true) {
@@ -71,7 +79,10 @@ class _PlansScreenState extends State<PlansScreen> {
         title: const Text('Delete Plan'),
         content: const Text('Are you sure you want to delete this meal plan?'),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancel'),
+          ),
           TextButton(
             onPressed: () async {
               Navigator.pop(dialogContext);
@@ -82,12 +93,18 @@ class _PlansScreenState extends State<PlansScreen> {
                   _plans.removeWhere((plan) => plan.mid == mid);
                 });
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Plan deleted successfully!'), backgroundColor: Colors.blue)
+                  const SnackBar(
+                    content: Text('Plan deleted successfully!'),
+                    backgroundColor: Colors.blue,
+                  ),
                 );
               } catch (e) {
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Failed to delete plan: $e'), backgroundColor: Colors.red)
+                  SnackBar(
+                    content: Text('Failed to delete plan: $e'),
+                    backgroundColor: Colors.red,
+                  ),
                 );
               }
             },
@@ -115,7 +132,10 @@ class _PlansScreenState extends State<PlansScreen> {
             // Removed the Row with Filter Icon as requested
             child: Align(
               alignment: Alignment.centerLeft,
-              child: Text('Meal Plans', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              child: Text(
+                'Meal Plans',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
             ),
           ),
           Expanded(child: _buildBody()),
@@ -125,9 +145,22 @@ class _PlansScreenState extends State<PlansScreen> {
   }
 
   Widget _buildBody() {
-    if (_isLoading) return const Center(child: CircularProgressIndicator(color: Colors.blue));
-    if (_error != null) return Center(child: Text('Error: $_error', style: const TextStyle(color: Colors.red)));
-    if (_plans.isEmpty) return Center(child: Text('No meal plans created yet.', style: TextStyle(color: Colors.grey[600])));
+    if (_isLoading)
+      return const Center(child: CircularProgressIndicator(color: Colors.blue));
+    if (_error != null)
+      return Center(
+        child: Text(
+          'Error: $_error',
+          style: const TextStyle(color: Colors.red),
+        ),
+      );
+    if (_plans.isEmpty)
+      return Center(
+        child: Text(
+          'No meal plans created yet.',
+          style: TextStyle(color: Colors.grey[600]),
+        ),
+      );
 
     return ListView.builder(
       padding: const EdgeInsets.all(16),
@@ -144,7 +177,13 @@ class _PlansScreenState extends State<PlansScreen> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
-        boxShadow: [BoxShadow(color: Colors.grey.withOpacity(0.08), blurRadius: 10, offset: const Offset(0, 4))],
+        boxShadow: [
+          BoxShadow(
+            color: Colors.grey.withOpacity(0.08),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -155,7 +194,13 @@ class _PlansScreenState extends State<PlansScreen> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Expanded(
-                  child: Text(mealPlan.name, style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+                  child: Text(
+                    mealPlan.name,
+                    style: const TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
                 ),
                 PopupMenuButton<String>(
                   icon: Icon(Icons.more_vert, color: Colors.grey[600]),
@@ -167,8 +212,17 @@ class _PlansScreenState extends State<PlansScreen> {
                     }
                   },
                   itemBuilder: (context) => [
-                    const PopupMenuItem(value: 'edit', child: Text('Edit Plan')),
-                    const PopupMenuItem(value: 'delete', child: Text('Delete Plan', style: TextStyle(color: Colors.red))),
+                    const PopupMenuItem(
+                      value: 'edit',
+                      child: Text('Edit Plan'),
+                    ),
+                    const PopupMenuItem(
+                      value: 'delete',
+                      child: Text(
+                        'Delete Plan',
+                        style: TextStyle(color: Colors.red),
+                      ),
+                    ),
                   ],
                 ),
               ],
@@ -178,7 +232,13 @@ class _PlansScreenState extends State<PlansScreen> {
               children: [
                 Icon(Icons.person, size: 16, color: Colors.blue[800]),
                 const SizedBox(width: 6),
-                Text(mealPlan.clientName, style: const TextStyle(fontWeight: FontWeight.w600, fontSize: 15)),
+                Text(
+                  mealPlan.clientName,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                  ),
+                ),
               ],
             ),
             const SizedBox(height: 4),
@@ -186,14 +246,21 @@ class _PlansScreenState extends State<PlansScreen> {
               children: [
                 Icon(Icons.timer, size: 16, color: Colors.grey[500]),
                 const SizedBox(width: 6),
-                Text(mealPlan.duration, style: TextStyle(color: Colors.grey[600])),
+                Text(
+                  mealPlan.duration,
+                  style: TextStyle(color: Colors.grey[600]),
+                ),
               ],
             ),
             const SizedBox(height: 12),
             Text(
               mealPlan.description,
-              style: TextStyle(color: Colors.grey[700], fontStyle: FontStyle.italic),
-              maxLines: 2, overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: Colors.grey[700],
+                fontStyle: FontStyle.italic,
+              ),
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
             ),
             const SizedBox(height: 12),
             Align(

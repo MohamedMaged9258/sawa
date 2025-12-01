@@ -31,7 +31,7 @@ class _SplashScreenState extends State<SplashScreen> {
         case 'member':
           Navigator.pushReplacementNamed(context, '/member-home');
           break;
-        case 'gymOwner': 
+        case 'gymOwner':
           Navigator.pushReplacementNamed(context, '/gym-owner-home');
           break;
         case 'restaurantOwner':
@@ -54,7 +54,7 @@ class _SplashScreenState extends State<SplashScreen> {
     final primaryColor = Theme.of(context).primaryColor;
 
     return Scaffold(
-      backgroundColor: Colors.white, 
+      backgroundColor: Colors.white,
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -67,7 +67,7 @@ class _SplashScreenState extends State<SplashScreen> {
               fit: BoxFit.contain,
             ),
             const SizedBox(height: 30),
-            
+
             // Loading Indicator (Themed)
             CircularProgressIndicator(
               valueColor: AlwaysStoppedAnimation<Color>(primaryColor),

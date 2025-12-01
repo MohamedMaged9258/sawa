@@ -1,4 +1,3 @@
-
 import 'dart:io';
 import 'package:cloud_firestore/cloud_firestore.dart' hide Order;
 import 'package:firebase_storage/firebase_storage.dart';
@@ -11,13 +10,20 @@ class RestaurantProvider {
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseStorage _storage = FirebaseStorage.instance;
 
-  static final CollectionReference _restaurantsCollection = _firestore.collection('restaurants');
-  static final CollectionReference _mealsCollection = _firestore.collection('meals');
-  static final CollectionReference _ordersCollection = _firestore.collection('orders');
+  static final CollectionReference _restaurantsCollection = _firestore
+      .collection('restaurants');
+  static final CollectionReference _mealsCollection = _firestore.collection(
+    'meals',
+  );
+  static final CollectionReference _ordersCollection = _firestore.collection(
+    'orders',
+  );
 
   // --- RESTAURANT & MEAL METHODS (Standard CRUD) ---
-  
-  static Future<List<Restaurant>> fetchRestaurantsByOwner(String ownerId) async {
+
+  static Future<List<Restaurant>> fetchRestaurantsByOwner(
+    String ownerId,
+  ) async {
     if (ownerId.isEmpty) return [];
     try {
       final snapshot = await _restaurantsCollection
@@ -30,15 +36,23 @@ class RestaurantProvider {
     }
   }
 
-  static Future<void> addRestaurant(Restaurant restaurant, XFile? imageFile) async {
+  static Future<void> addRestaurant(
+    Restaurant restaurant,
+    XFile? imageFile,
+  ) async {
     if (restaurant.ownerId.isEmpty) throw Exception('Owner ID missing');
     try {
       String photoUrl = '';
       if (imageFile != null) {
-        photoUrl = await _uploadPhoto(imageFile, 'restaurant_photos/${restaurant.rid}');
+        photoUrl = await _uploadPhoto(
+          imageFile,
+          'restaurant_photos/${restaurant.rid}',
+        );
       }
       Restaurant newRestaurant = restaurant.copyWith(photo: photoUrl);
-      await _restaurantsCollection.doc(newRestaurant.rid).set(newRestaurant.toFirestore());
+      await _restaurantsCollection
+          .doc(newRestaurant.rid)
+          .set(newRestaurant.toFirestore());
     } catch (e) {
       throw Exception('Failed to add restaurant.');
     }
@@ -87,10 +101,12 @@ class RestaurantProvider {
       throw Exception('Failed to delete meal.');
     }
   }
-  
+
   static Future<void> toggleMealAvailability(Meal meal) async {
     try {
-      await _mealsCollection.doc(meal.mid).update({'isAvailable': !meal.isAvailable});
+      await _mealsCollection.doc(meal.mid).update({
+        'isAvailable': !meal.isAvailable,
+      });
     } catch (e) {
       throw Exception('Failed to update availability.');
     }
@@ -110,7 +126,10 @@ class RestaurantProvider {
     }
   }
 
-  static Future<void> updateOrderStatus(String orderId, String newStatus) async {
+  static Future<void> updateOrderStatus(
+    String orderId,
+    String newStatus,
+  ) async {
     try {
       await _ordersCollection.doc(orderId).update({'status': newStatus});
     } catch (e) {
@@ -130,7 +149,7 @@ class RestaurantProvider {
       double totalRevenue = orders
           .where((o) => o.status != 'cancelled')
           .fold(0.0, (sum, o) => sum + o.totalAmount);
-      
+
       // 2. Count Pending
       int pendingOrders = orders.where((o) => o.status == 'pending').length;
 
@@ -153,7 +172,8 @@ class RestaurantProvider {
   static Future<String> _uploadPhoto(XFile imageFile, String folderPath) async {
     try {
       File file = File(imageFile.path);
-      String fileName = '$folderPath/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      String fileName =
+          '$folderPath/${DateTime.now().millisecondsSinceEpoch}.jpg';
       Reference storageRef = _storage.ref().child(fileName);
       await storageRef.putFile(file);
       return await storageRef.getDownloadURL();

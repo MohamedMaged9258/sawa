@@ -1,7 +1,3 @@
-// lib/presentation/screens/nutritionist/nutrionist_home_screen.dart
-
-// ignore_for_file: deprecated_member_use
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
@@ -20,21 +16,13 @@ class NutritionistHomeScreen extends StatefulWidget {
 class _NutritionistHomeScreenState extends State<NutritionistHomeScreen> {
   int _currentIndex = 0;
 
-  final List<Widget> _screens = [
-    const DashboardScreen(),
-    const ClientsScreen(),
-    const PlansScreen(),
-    const ConsultationScreen(),
-  ];
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.grey[50],
-      body: IndexedStack(
-        index: _currentIndex,
-        children: _screens,
-      ),
+      // FIX: Changed from IndexedStack to a direct build method.
+      // This prevents the app from crashing on login if one of the hidden screens has an error.
+      body: _buildBody(),
       bottomNavigationBar: Container(
         decoration: BoxDecoration(
           color: Colors.white,
@@ -54,7 +42,10 @@ class _NutritionistHomeScreenState extends State<NutritionistHomeScreen> {
           selectedItemColor: Colors.blue[800],
           unselectedItemColor: Colors.grey[400],
           showUnselectedLabels: true,
-          selectedLabelStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 12),
+          selectedLabelStyle: const TextStyle(
+            fontWeight: FontWeight.bold,
+            fontSize: 12,
+          ),
           unselectedLabelStyle: const TextStyle(fontSize: 12),
           elevation: 0,
           items: const [
@@ -79,7 +70,25 @@ class _NutritionistHomeScreenState extends State<NutritionistHomeScreen> {
       ),
     );
   }
+
+  /// Only builds the screen currently selected.
+  Widget _buildBody() {
+    switch (_currentIndex) {
+      case 0:
+        return const DashboardScreen();
+      case 1:
+        return const ClientsScreen();
+      case 2:
+        return const PlansScreen();
+      case 3:
+        return const ConsultationScreen();
+      default:
+        return const DashboardScreen();
+    }
+  }
 }
+
+// --- DASHBOARD SCREEN ---
 
 class DashboardScreen extends StatefulWidget {
   const DashboardScreen({super.key});
@@ -112,6 +121,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
         throw Exception("User ID not available.");
       }
 
+      // Static call is correct here
       final stats = await NutritionistProvider.getStatistics(ownerId);
 
       if (!mounted) return;
@@ -136,16 +146,20 @@ class _DashboardScreenState extends State<DashboardScreen> {
 
     if (_error != null) {
       return Center(
-        child: Text(
-          'Error loading dashboard: $_error',
-          style: const TextStyle(color: Colors.red),
+        child: Padding(
+          padding: const EdgeInsets.all(20.0),
+          child: Text(
+            'Error loading dashboard: $_error',
+            style: const TextStyle(color: Colors.red),
+            textAlign: TextAlign.center,
+          ),
         ),
       );
     }
 
-    // --- Safe Data Parsing for Real Revenue ---
-    final monthlyRevenue = (_stats['monthlyRevenue'] is num) 
-        ? (_stats['monthlyRevenue'] as num).toDouble() 
+    // --- Safe Data Parsing ---
+    final monthlyRevenue = (_stats['monthlyRevenue'] is num)
+        ? (_stats['monthlyRevenue'] as num).toDouble()
         : 0.0;
 
     return RefreshIndicator(
@@ -166,7 +180,7 @@ class _DashboardScreenState extends State<DashboardScreen> {
                     style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 16),
-                  
+
                   GridView.count(
                     shrinkWrap: true,
                     physics: const NeverScrollableScrollPhysics(),
@@ -193,12 +207,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
                         Icons.chat,
                         Colors.orange,
                       ),
-                      // Real Revenue Card
                       _buildStatCard(
                         'Revenue',
                         '\$${monthlyRevenue.toStringAsFixed(2)}',
                         Icons.attach_money,
-                        Colors.blue, // Kept consistent with Blue theme
+                        Colors.blue,
                       ),
                     ],
                   ),
@@ -245,13 +258,21 @@ class _DashboardScreenState extends State<DashboardScreen> {
                   color: Colors.white.withOpacity(0.2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(Icons.medical_services, color: Colors.white, size: 28),
+                child: const Icon(
+                  Icons.medical_services,
+                  color: Colors.white,
+                  size: 28,
+                ),
               ),
               IconButton(
                 icon: const Icon(Icons.logout, color: Colors.white),
                 onPressed: () {
                   authProvider.logout();
-                  Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+                  Navigator.pushNamedAndRemoveUntil(
+                    context,
+                    '/login',
+                    (route) => false,
+                  );
                 },
                 tooltip: 'Logout',
               ),
@@ -276,7 +297,12 @@ class _DashboardScreenState extends State<DashboardScreen> {
     );
   }
 
-  Widget _buildStatCard(String title, String value, IconData icon, Color color) {
+  Widget _buildStatCard(
+    String title,
+    String value,
+    IconData icon,
+    Color color,
+  ) {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -305,7 +331,11 @@ class _DashboardScreenState extends State<DashboardScreen> {
           const SizedBox(height: 12),
           Text(
             value,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold, color: Colors.black87),
+            style: const TextStyle(
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.black87,
+            ),
           ),
           const SizedBox(height: 4),
           Text(

@@ -1,6 +1,3 @@
-// lib/presentation/screens/restaurant_owner/add_restaurant_screen.dart
-// ignore_for_file: use_build_context_synchronously, deprecated_member_use
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -92,14 +89,17 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
     var status = await Permission.location.request();
     if (status.isGranted) {
       try {
-         Position position = await Geolocator.getCurrentPosition();
+        Position position = await Geolocator.getCurrentPosition();
         setState(() {
           _selectedLatitude = position.latitude;
           _selectedLongitude = position.longitude;
-          _locationController.text = "${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}";
+          _locationController.text =
+              "${position.latitude.toStringAsFixed(6)}, ${position.longitude.toStringAsFixed(6)}";
         });
       } catch (e) {
-         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text("Could not get location")));
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text("Could not get location")));
       }
     }
   }
@@ -124,9 +124,15 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Restaurant Details', style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold)),
+              const Text(
+                'Restaurant Details',
+                style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 4),
-              Text('Enter your restaurant information', style: TextStyle(color: Colors.grey[600])),
+              Text(
+                'Enter your restaurant information',
+                style: TextStyle(color: Colors.grey[600]),
+              ),
               const SizedBox(height: 24),
 
               // Photo Upload Zone
@@ -151,9 +157,19 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
                       : Column(
                           mainAxisAlignment: MainAxisAlignment.center,
                           children: [
-                            Icon(Icons.add_a_photo, size: 40, color: Colors.blue[300]),
+                            Icon(
+                              Icons.add_a_photo,
+                              size: 40,
+                              color: Colors.blue[300],
+                            ),
                             const SizedBox(height: 8),
-                            Text('Upload Cover Photo', style: TextStyle(color: Colors.blue[800], fontWeight: FontWeight.bold)),
+                            Text(
+                              'Upload Cover Photo',
+                              style: TextStyle(
+                                color: Colors.blue[800],
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
                           ],
                         ),
                 ),
@@ -162,29 +178,42 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
 
               _buildTextField(_nameController, 'Restaurant Name', Icons.store),
               const SizedBox(height: 16),
-              
+
               DropdownButtonFormField<String>(
                 value: _selectedCuisineType,
-                items: _cuisineTypes.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                items: _cuisineTypes
+                    .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                    .toList(),
                 onChanged: (v) => setState(() => _selectedCuisineType = v),
                 decoration: InputDecoration(
                   labelText: 'Cuisine Type',
-                  prefixIcon: Icon(Icons.restaurant_menu, color: Colors.blue[800]),
-                  filled: true, fillColor: Colors.grey[50],
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  prefixIcon: Icon(
+                    Icons.restaurant_menu,
+                    color: Colors.blue[800],
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
                 ),
                 validator: (v) => v == null ? 'Required' : null,
               ),
               const SizedBox(height: 16),
-              
+
               TextFormField(
                 controller: _locationController,
                 readOnly: true,
                 decoration: InputDecoration(
                   labelText: 'Location',
                   prefixIcon: Icon(Icons.location_on, color: Colors.blue[800]),
-                  filled: true, fillColor: Colors.grey[50],
-                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                  filled: true,
+                  fillColor: Colors.grey[50],
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide.none,
+                  ),
                   suffixIcon: IconButton(
                     icon: Icon(Icons.my_location, color: Colors.blue[600]),
                     onPressed: _getCurrentLocation,
@@ -193,10 +222,15 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
                 validator: (v) => v!.isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: 16),
-              
-              _buildTextField(_priceController, 'Avg Price per Person', Icons.attach_money, isNumber: true),
+
+              _buildTextField(
+                _priceController,
+                'Avg Price per Person',
+                Icons.attach_money,
+                isNumber: true,
+              ),
               const SizedBox(height: 32),
-              
+
               SizedBox(
                 width: double.infinity,
                 height: 50,
@@ -204,13 +238,19 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
                   onPressed: _isSubmitting ? null : _submit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue[800],
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
                   child: _isSubmitting
                       ? const CircularProgressIndicator(color: Colors.white)
                       : const Text(
                           'Create Restaurant',
-                          style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold),
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
                         ),
                 ),
               ),
@@ -221,15 +261,24 @@ class _AddRestaurantScreenState extends State<AddRestaurantScreen> {
     );
   }
 
-  Widget _buildTextField(TextEditingController ctrl, String label, IconData icon, {bool isNumber = false}) {
+  Widget _buildTextField(
+    TextEditingController ctrl,
+    String label,
+    IconData icon, {
+    bool isNumber = false,
+  }) {
     return TextFormField(
       controller: ctrl,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
       decoration: InputDecoration(
         labelText: label,
         prefixIcon: Icon(icon, color: Colors.blue[800]),
-        filled: true, fillColor: Colors.grey[50],
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        filled: true,
+        fillColor: Colors.grey[50],
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
       ),
       validator: (v) => v!.isEmpty ? 'Required' : null,
     );

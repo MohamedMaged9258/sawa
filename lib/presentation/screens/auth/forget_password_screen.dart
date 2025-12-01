@@ -1,5 +1,4 @@
-// ignore_for_file: use_build_context_synchronously
-
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../providers/auth_provider.dart' as local_auth;
@@ -22,7 +21,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       return;
     }
 
-    final authProvider = Provider.of<local_auth.AuthProvider>(context, listen: false);
+    final authProvider = Provider.of<local_auth.AuthProvider>(
+      context,
+      listen: false,
+    );
 
     try {
       await authProvider.resetPassword(_emailController.text.trim());
@@ -30,22 +32,19 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Password reset email sent successfully! Check your inbox.'),
+            content: Text(
+              'Password reset email sent successfully! Check your inbox.',
+            ),
             backgroundColor: Colors.green,
           ),
         );
         Navigator.pop(context);
       }
-    } catch (e) {
-      // Catch String error thrown from Provider
+    } on FirebaseAuthException catch (e) {
       if (mounted) {
         String errorMessage = _mapFirebaseAuthError(e);
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(e.toString()),
-            content: Text(errorMessage),
-            backgroundColor: Colors.red,
-          ),
+          SnackBar(content: Text(errorMessage), backgroundColor: Colors.red),
         );
       }
     } catch (e) {
@@ -90,7 +89,10 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     const SizedBox(height: 16),
                     const Text(
                       'Reset Your Password',
-                      style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                        fontSize: 24,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                     const SizedBox(height: 16),
                     const Text(
@@ -105,8 +107,6 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                       prefixIcon: Icons.email,
                       keyboardType: TextInputType.emailAddress,
                       validator: (value) {
-                        if (value == null || value.isEmpty) return 'Please enter your email';
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) return 'Please enter a valid email';
                         if (value == null || value.isEmpty) {
                           return 'Please enter your email address';
                         }
@@ -121,13 +121,14 @@ class _ForgotPasswordScreenState extends State<ForgotPasswordScreen> {
                     const SizedBox(height: 24),
                     CustomButton(
                       text: 'Send Reset Link',
-                      isLoading: authProvider.isLoading, // Use provider loading state
                       isLoading: authProvider.isLoading,
                       onPressed: () => _resetPassword(context),
                     ),
                     const SizedBox(height: 16),
                     TextButton(
-                      onPressed: () => Navigator.pop(context),
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
                       child: const Text('Back to Login'),
                     ),
                     const SizedBox(height: 60),

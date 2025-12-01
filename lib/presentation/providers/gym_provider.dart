@@ -10,12 +10,15 @@ class GymProvider {
 
   static final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   static final FirebaseStorage _storage = FirebaseStorage.instance;
-  static final CollectionReference _gymsCollection =
-      _firestore.collection('gyms');
-  static final CollectionReference _coachesCollection =
-      _firestore.collection('coaches');
-  static final CollectionReference _bookingsCollection =
-      _firestore.collection('bookings');
+  static final CollectionReference _gymsCollection = _firestore.collection(
+    'gyms',
+  );
+  static final CollectionReference _coachesCollection = _firestore.collection(
+    'coaches',
+  );
+  static final CollectionReference _bookingsCollection = _firestore.collection(
+    'bookings',
+  );
 
   // --- GYM METHODS (UNCHANGED) ---
   static Future<List<Gym>> fetchGymsByOwner(String ownerId) async {
@@ -79,19 +82,22 @@ class GymProvider {
 
       // Create lookup map for Gym Price
       Map<String, double> gymPrices = {
-        for (var gym in gyms) gym.gid: gym.pricePerMonth
+        for (var gym in gyms) gym.gid: gym.pricePerMonth,
       };
       List<String> myGymIds = gyms.map((e) => e.gid).toList();
 
       if (myGymIds.isEmpty) {
         return {
-          'gymCount': 0, 'coachCount': coaches.length,
-          'totalMonthlyRevenue': 0.0, 'activeMembers': 0,
-          'yearlyRevenue': 0.0, 'weeklyRevenue': 0.0,
+          'gymCount': 0,
+          'coachCount': coaches.length,
+          'totalMonthlyRevenue': 0.0,
+          'activeMembers': 0,
+          'yearlyRevenue': 0.0,
+          'weeklyRevenue': 0.0,
         };
       }
 
-      // 2. Fetch Bookings 
+      // 2. Fetch Bookings
       // Note: In production with many gyms, batch this query.
       final bookingSnapshot = await _bookingsCollection
           .where('type', isEqualTo: 'Gym')
@@ -146,14 +152,20 @@ class GymProvider {
   }
 
   static Future<void> addCoach(Coach newCoach, XFile? imageFile) async {
-    if (newCoach.gymId.isEmpty || newCoach.ownerId.isEmpty) throw Exception('Data missing');
+    if (newCoach.gymId.isEmpty || newCoach.ownerId.isEmpty)
+      throw Exception('Data missing');
     try {
       String photoUrl = '';
       if (imageFile != null) {
-        photoUrl = await _uploadPhoto(imageFile, 'coach_photos/${newCoach.cid}');
+        photoUrl = await _uploadPhoto(
+          imageFile,
+          'coach_photos/${newCoach.cid}',
+        );
       }
       Coach coachToSave = newCoach.copyWith(photo: photoUrl);
-      await _coachesCollection.doc(coachToSave.cid).set(coachToSave.toFirestore());
+      await _coachesCollection
+          .doc(coachToSave.cid)
+          .set(coachToSave.toFirestore());
     } catch (e) {
       throw Exception('Failed to add coach: $e');
     }
@@ -174,7 +186,8 @@ class GymProvider {
   static Future<String> _uploadPhoto(XFile imageFile, String folderPath) async {
     try {
       File file = File(imageFile.path);
-      String fileName = '$folderPath/${DateTime.now().millisecondsSinceEpoch}.jpg';
+      String fileName =
+          '$folderPath/${DateTime.now().millisecondsSinceEpoch}.jpg';
       Reference storageRef = _storage.ref().child(fileName);
       await storageRef.putFile(file);
       return await storageRef.getDownloadURL();

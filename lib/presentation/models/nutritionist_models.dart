@@ -47,7 +47,7 @@ class Client {
   factory Client.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return Client(
-      cid: doc.id,
+      cid: data['cid'] ?? 'ma3ana4 id',
       nutritionistId: data['nutritionistId'] ?? '',
       name: data['name'] ?? '',
       email: data['email'] ?? '',
@@ -60,6 +60,7 @@ class Client {
 
   Map<String, dynamic> toFirestore() {
     return {
+      'cid': cid,
       'nutritionistId': nutritionistId,
       'name': name,
       'email': email,
@@ -82,7 +83,7 @@ class MealPlan {
   final String description;
   final DateTime createdAt;
   // Placeholder fields for daily meals (to be implemented fully later)
-  final Map<String, String> dailyMeals; 
+  final Map<String, String> dailyMeals;
 
   MealPlan({
     required this.mid,
@@ -123,7 +124,7 @@ class MealPlan {
   factory MealPlan.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return MealPlan(
-      mid: doc.id,
+      mid: data['mid'] ?? 'ma3ana4 id',
       nutritionistId: data['nutritionistId'] ?? '',
       clientId: data['clientId'] ?? '',
       name: data['name'] ?? '',
@@ -137,6 +138,7 @@ class MealPlan {
 
   Map<String, dynamic> toFirestore() {
     return {
+      'mid': mid,
       'nutritionistId': nutritionistId,
       'clientId': clientId,
       'name': name,
@@ -192,7 +194,7 @@ class Consultation {
   factory Consultation.fromFirestore(DocumentSnapshot doc) {
     Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
     return Consultation(
-      cid: doc.id,
+      cid: data['cid'] ?? 'ma3ana4 id',
       nutritionistId: data['nutritionistId'] ?? '',
       clientId: data['clientId'] ?? '',
       clientName: data['clientName'] ?? '',
@@ -204,6 +206,7 @@ class Consultation {
 
   Map<String, dynamic> toFirestore() {
     return {
+      'cid': cid,
       'nutritionistId': nutritionistId,
       'clientId': clientId,
       'clientName': clientName,

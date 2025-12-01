@@ -1,7 +1,3 @@
-// lib/presentation/screens/nutritionist/create_edit_plan_screen.dart
-
-// ignore_for_file: avoid_print, deprecated_member_use
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
@@ -33,30 +29,43 @@ class _CreateEditPlanScreenState extends State<CreateEditPlanScreen> {
   final TextEditingController _dinnerController = TextEditingController();
   final TextEditingController _snacksController = TextEditingController();
 
+  // State for data fetching
   List<Client> _availableClients = [];
   bool _isLoadingClients = true;
   bool _isSaving = false;
 
-  String? _selectedClientName;
-  String? _selectedClientId; 
+  // The selected Client Object
+  Client? _selectedClient;
   String? _selectedDuration;
 
-  final List<String> _durations = ['1 Week', '2 Weeks', '1 Month', '3 Months', '6 Months'];
+  final List<String> _durations = [
+    '1 Week',
+    '2 Weeks',
+    '1 Month',
+    '3 Months',
+    '6 Months',
+  ];
 
   @override
   void initState() {
     super.initState();
     _fetchClients();
+
+    // Pre-fill text fields if editing
     if (widget.isEditing && widget.plan != null) {
       _nameController.text = widget.plan!.name;
       _descriptionController.text = widget.plan!.description;
       _selectedDuration = widget.plan!.duration;
-      _selectedClientName = widget.plan!.clientName;
-      _selectedClientId = widget.plan!.clientId;
-    } else if (widget.planClient != null) {
-      _selectedClientName = widget.planClient!.name;
-      _selectedClientId = widget.planClient!.cid;
+      _loadMeals(widget.plan!.dailyMeals);
+      // _selectedClient is set in _fetchClients to match the object reference
     }
+  }
+
+  void _loadMeals(Map<String, String> meals) {
+    _breakfastController.text = meals['breakfast'] ?? '';
+    _lunchController.text = meals['lunch'] ?? '';
+    _dinnerController.text = meals['dinner'] ?? '';
+    _snacksController.text = meals['snacks'] ?? '';
   }
 
   @override
@@ -72,32 +81,72 @@ class _CreateEditPlanScreenState extends State<CreateEditPlanScreen> {
 
   Future<void> _fetchClients() async {
     try {
-      final nutritionistId = Provider.of<AuthProvider>(context, listen: false).uid;
+      final nutritionistId = Provider.of<AuthProvider>(
+        context,
+        listen: false,
+      ).uid;
       if (nutritionistId != null) {
-        final clients = await NutritionistProvider.fetchClientsByNutritionId(nutritionistId);
+        final clients = await NutritionistProvider.fetchClientsByNutritionId(
+          nutritionistId,
+        );
         if (mounted) {
           setState(() {
             _availableClients = clients;
             _isLoadingClients = false;
+
+            // Logic to set _selectedClient based on the fetched list
+            if (widget.isEditing && widget.plan != null) {
+              // Find the client that matches the ID in the plan
+              try {
+                _selectedClient = _availableClients.firstWhere(
+                  (c) => c.cid == widget.plan!.clientId,
+                );
+              } catch (e) {
+                // Client might have been deleted
+                _selectedClient = null;
+              }
+            } else if (widget.planClient != null) {
+              // Find the client object that matches the passed client
+              try {
+                _selectedClient = _availableClients.firstWhere(
+                  (c) => c.cid == widget.planClient!.cid,
+                );
+              } catch (e) {
+                // Fallback if not found in list immediately
+                _selectedClient = widget.planClient;
+              }
+            }
           });
         }
       }
     } catch (e) {
-      if (mounted) setState(() => _isLoadingClients = false);
+      if (mounted) {
+        setState(() {
+          _isLoadingClients = false;
+        });
+        print('Error fetching clients for plan: $e');
+      }
     }
   }
 
   Future<void> _savePlan() async {
     if (!_formKey.currentState!.validate()) return;
-    if (_selectedClientId == null) {
-       ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a client')));
-       return;
+
+    // Check if the client object is selected
+    if (_selectedClient == null) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a client')));
+      return;
     }
 
     setState(() => _isSaving = true);
 
     try {
-      final ownerId = Provider.of<AuthProvider>(context, listen: false).uid!;
+      final nutritionistId = Provider.of<AuthProvider>(
+        context,
+        listen: false,
+      ).uid!;
 
       final Map<String, String> dailyMeals = {
         'breakfast': _breakfastController.text,
@@ -112,13 +161,16 @@ class _CreateEditPlanScreenState extends State<CreateEditPlanScreen> {
               description: _descriptionController.text,
               duration: _selectedDuration,
               dailyMeals: dailyMeals,
+              // Update client details in case they changed in the dropdown
+              clientId: _selectedClient!.cid,
+              clientName: _selectedClient!.name,
             )
           : MealPlan(
               mid: DateTime.now().millisecondsSinceEpoch.toString(),
-              nutritionistId: ownerId,
-              clientId: _selectedClientId!,
+              nutritionistId: nutritionistId,
+              clientId: _selectedClient!.cid, // Using the object's ID
               name: _nameController.text,
-              clientName: _selectedClientName!,
+              clientName: _selectedClient!.name, // Using the object's Name
               duration: _selectedDuration!,
               description: _descriptionController.text,
               createdAt: DateTime.now(),
@@ -132,10 +184,15 @@ class _CreateEditPlanScreenState extends State<CreateEditPlanScreen> {
       }
 
       if (!mounted) return;
-      Navigator.pop(context, true); 
+      Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Failed to save plan: $e'),
+          backgroundColor: Colors.red,
+        ),
+      );
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -164,52 +221,101 @@ class _CreateEditPlanScreenState extends State<CreateEditPlanScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Plan Details', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text(
+                'Plan Details',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 20),
 
               _buildInput(_nameController, 'Plan Name', Icons.assignment),
               const SizedBox(height: 16),
 
+              // Client Selection Dropdown using the Client Object
               _isLoadingClients
-                  ? const CircularProgressIndicator()
-                  : DropdownButtonFormField<String>(
-                      value: _selectedClientName,
-                      decoration: _inputDecoration('Select Client', Icons.person),
-                      items: _availableClients.map((c) => DropdownMenuItem(value: c.name, child: Text(c.name))).toList(),
-                      onChanged: (val) {
+                  ? const Center(child: CircularProgressIndicator())
+                  : DropdownButtonFormField<Client>(
+                      value: _selectedClient,
+                      decoration: _inputDecoration(
+                        'Select Client',
+                        Icons.person,
+                      ),
+                      items: _availableClients.map((Client client) {
+                        return DropdownMenuItem<Client>(
+                          value: client,
+                          child: Text(client.name),
+                        );
+                      }).toList(),
+                      onChanged: (Client? newClient) {
                         setState(() {
-                          _selectedClientName = val;
-                          _selectedClientId = _availableClients.firstWhere((c) => c.name == val).cid;
+                          _selectedClient = newClient;
                         });
                       },
-                      validator: (v) => v == null ? 'Required' : null,
+                      validator: (value) => value == null ? 'Required' : null,
                     ),
               const SizedBox(height: 16),
 
               DropdownButtonFormField<String>(
                 value: _selectedDuration,
                 decoration: _inputDecoration('Duration', Icons.timer),
-                items: _durations.map((d) => DropdownMenuItem(value: d, child: Text(d))).toList(),
-                onChanged: (val) => setState(() => _selectedDuration = val),
-                validator: (v) => v == null ? 'Required' : null,
+                items: _durations
+                    .map(
+                      (String duration) => DropdownMenuItem<String>(
+                        value: duration,
+                        child: Text(duration),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (String? newValue) =>
+                    setState(() => _selectedDuration = newValue),
+                validator: (value) =>
+                    value == null || value.isEmpty ? 'Required' : null,
               ),
               const SizedBox(height: 16),
 
-              _buildInput(_descriptionController, 'Description', Icons.description, maxLines: 3),
+              _buildInput(
+                _descriptionController,
+                'Description',
+                Icons.description,
+                maxLines: 3,
+              ),
               const SizedBox(height: 24),
 
-              const Text('Daily Meals', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+              const Text(
+                'Daily Meals',
+                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+              ),
               const SizedBox(height: 16),
 
-              _buildInput(_breakfastController, 'Breakfast', Icons.breakfast_dining, maxLines: 2),
+              _buildInput(
+                _breakfastController,
+                'Breakfast',
+                Icons.breakfast_dining,
+                maxLines: 2,
+              ),
               const SizedBox(height: 12),
-              _buildInput(_lunchController, 'Lunch', Icons.lunch_dining, maxLines: 2),
+              _buildInput(
+                _lunchController,
+                'Lunch',
+                Icons.lunch_dining,
+                maxLines: 2,
+              ),
               const SizedBox(height: 12),
-              _buildInput(_dinnerController, 'Dinner', Icons.dinner_dining, maxLines: 2),
+              _buildInput(
+                _dinnerController,
+                'Dinner',
+                Icons.dinner_dining,
+                maxLines: 2,
+              ),
               const SizedBox(height: 12),
-              _buildInput(_snacksController, 'Snacks', Icons.local_cafe, maxLines: 2),
-              
+              _buildInput(
+                _snacksController,
+                'Snacks',
+                Icons.local_cafe,
+                maxLines: 2,
+              ),
+
               const SizedBox(height: 32),
+
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
@@ -217,11 +323,26 @@ class _CreateEditPlanScreenState extends State<CreateEditPlanScreen> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue[800],
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  child: _isSaving 
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : const Text('Save Plan', style: TextStyle(color: Colors.white, fontSize: 16)),
+                  child: _isSaving
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          widget.isEditing ? 'Update Plan' : 'Save Plan',
+                          style: const TextStyle(
+                            fontSize: 16,
+                            color: Colors.white,
+                          ),
+                        ),
                 ),
               ),
             ],
@@ -231,7 +352,12 @@ class _CreateEditPlanScreenState extends State<CreateEditPlanScreen> {
     );
   }
 
-  Widget _buildInput(TextEditingController ctrl, String label, IconData icon, {int maxLines = 1}) {
+  Widget _buildInput(
+    TextEditingController ctrl,
+    String label,
+    IconData icon, {
+    int maxLines = 1,
+  }) {
     return TextFormField(
       controller: ctrl,
       maxLines: maxLines,
@@ -244,8 +370,12 @@ class _CreateEditPlanScreenState extends State<CreateEditPlanScreen> {
     return InputDecoration(
       labelText: label,
       prefixIcon: Icon(icon, color: Colors.blue[800]),
-      filled: true, fillColor: Colors.grey[50],
-      border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+      filled: true,
+      fillColor: Colors.grey[50],
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide.none,
+      ),
     );
   }
 }

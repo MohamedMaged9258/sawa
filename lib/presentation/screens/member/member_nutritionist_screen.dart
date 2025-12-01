@@ -1,5 +1,3 @@
-// lib/presentation/screens/member/member_nutritionist_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:sawa/presentation/providers/auth_provider.dart';
@@ -63,7 +61,9 @@ class _MemberNutritionistScreenState extends State<MemberNutritionistScreen> {
               Navigator.pop(dialogContext);
               _processBooking(nutritionist);
             },
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]), // Blue Button
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Colors.blue[800],
+            ), // Blue Button
             child: const Text(
               'Pick Date',
               style: TextStyle(color: Colors.white),
@@ -107,6 +107,7 @@ class _MemberNutritionistScreenState extends State<MemberNutritionistScreen> {
         memberId: auth.uid!,
         memberName: auth.name ?? 'Member',
         nutritionistId: nutritionist['id'],
+        nutritionistName: nutritionist['name'] ?? 'N',
         date: fullDateTime,
       );
 
@@ -118,13 +119,7 @@ class _MemberNutritionistScreenState extends State<MemberNutritionistScreen> {
         ),
       );
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Booking failed: $e'),
-          backgroundColor: Colors.red,
-        ),
-      );
+      // ... (Error handling)
     }
   }
 
@@ -168,11 +163,15 @@ class _MemberNutritionistScreenState extends State<MemberNutritionistScreen> {
                   ? NetworkImage(photoUrl)
                   : null,
               child: (photoUrl == null || photoUrl.isEmpty)
-                  ? Icon(Icons.person, size: 35, color: Colors.blue[300]) // Blue Icon
+                  ? Icon(
+                      Icons.person,
+                      size: 35,
+                      color: Colors.blue[300],
+                    ) // Blue Icon
                   : null,
             ),
             const SizedBox(width: 16),
-            
+
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -188,15 +187,12 @@ class _MemberNutritionistScreenState extends State<MemberNutritionistScreen> {
                   const SizedBox(height: 4),
                   Text(
                     'Certified Nutritionist',
-                    style: TextStyle(
-                      color: Colors.grey[700],
-                      fontSize: 14,
-                    ),
+                    style: TextStyle(color: Colors.grey[700], fontSize: 14),
                   ),
                 ],
               ),
             ),
-            
+
             ElevatedButton(
               onPressed: () => _showBookingDialog(nutritionist),
               style: ElevatedButton.styleFrom(
@@ -205,10 +201,7 @@ class _MemberNutritionistScreenState extends State<MemberNutritionistScreen> {
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
-              child: const Text(
-                'Book',
-                style: TextStyle(color: Colors.white),
-              ),
+              child: const Text('Book', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),

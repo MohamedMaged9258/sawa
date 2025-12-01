@@ -2,7 +2,7 @@
 // ignore_for_file: avoid_print
 
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:sawa/presentation/models/nutritionist_models.dart'; 
+import 'package:sawa/presentation/models/nutritionist_models.dart';
 
 class NutritionistProvider {
   NutritionistProvider._();
@@ -20,7 +20,34 @@ class NutritionistProvider {
 
   // --- CRUD METHODS (UNCHANGED) ---
 
-  static Future<List<Client>> fetchClientsByNutritionId(String nutritionistId) async {
+  // Add this inside the NutritionistProvider class
+
+  /// Fetch all users who have the role 'member'
+  static Future<List<Map<String, dynamic>>> fetchAllMembers() async {
+    try {
+      final snapshot = await _firestore
+          .collection('users')
+          .where('role', isEqualTo: 'member')
+          .get();
+
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        return {
+          'uid': data['uid'] ?? 'id tany',
+          'name': data['name'] ?? 'Unknown',
+          'email': data['email'] ?? '',
+          'phone': data['phone'] ?? '',
+        };
+      }).toList();
+    } catch (e) {
+      print("Error fetching members: $e");
+      throw Exception('Failed to load members.');
+    }
+  }
+
+  static Future<List<Client>> fetchClientsByNutritionId(
+    String nutritionistId,
+  ) async {
     if (nutritionistId.isEmpty) return [];
     try {
       final snapshot = await _clientsCollection
@@ -49,7 +76,9 @@ class NutritionistProvider {
     }
   }
 
-  static Future<List<MealPlan>> fetchPlansByNutritionist(String nutritionistId) async {
+  static Future<List<MealPlan>> fetchPlansByNutritionist(
+    String nutritionistId,
+  ) async {
     if (nutritionistId.isEmpty) return [];
     try {
       final snapshot = await _plansCollection
@@ -64,7 +93,7 @@ class NutritionistProvider {
 
   static Future<void> addPlan(MealPlan mealPlan) async {
     try {
-      await _plansCollection.doc(mealPlan.mid).set(mealPlan.toFirestore());
+      await _plansCollection.doc().set(mealPlan.toFirestore());
     } catch (e) {
       throw Exception('Failed to add meal plan.');
     }
@@ -92,14 +121,18 @@ class NutritionistProvider {
     }
   }
 
-  static Future<List<Consultation>> fetchConsultationsByNutritionist(String nutritionistId) async {
+  static Future<List<Consultation>> fetchConsultationsByNutritionist(
+    String nutritionistId,
+  ) async {
     if (nutritionistId.isEmpty) return [];
     try {
       final snapshot = await _consultationsCollection
           .where('nutritionistId', isEqualTo: nutritionistId)
           .orderBy('date', descending: false)
           .get();
-      return snapshot.docs.map((doc) => Consultation.fromFirestore(doc)).toList();
+      return snapshot.docs
+          .map((doc) => Consultation.fromFirestore(doc))
+          .toList();
     } catch (e) {
       throw Exception('Failed to fetch consultations.');
     }
@@ -107,15 +140,20 @@ class NutritionistProvider {
 
   static Future<void> addConsultation(Consultation consultation) async {
     try {
-      await _consultationsCollection.doc(consultation.cid).set(consultation.toFirestore());
+      await _consultationsCollection.doc().set(consultation.toFirestore());
     } catch (e) {
       throw Exception('Failed to add consultation.');
     }
   }
 
-  static Future<void> updateConsultationStatus(String consultationId, String newStatus) async {
+  static Future<void> updateConsultationStatus(
+    String consultationId,
+    String newStatus,
+  ) async {
     try {
-      await _consultationsCollection.doc(consultationId).update({'status': newStatus});
+      await _consultationsCollection.doc(consultationId).update({
+        'status': newStatus,
+      });
     } catch (e) {
       throw Exception('Failed to update consultation status.');
     }
@@ -131,16 +169,20 @@ class NutritionistProvider {
 
   // --- STATISTICS (REAL DATA IMPLEMENTATION) ---
 
-  static Future<Map<String, dynamic>> getStatistics(String nutritionistId) async {
+  static Future<Map<String, dynamic>> getStatistics(
+    String nutritionistId,
+  ) async {
     try {
       final clients = await fetchClientsByNutritionId(nutritionistId);
       final plans = await fetchPlansByNutritionist(nutritionistId);
-      final consultations = await fetchConsultationsByNutritionist(nutritionistId);
+      final consultations = await fetchConsultationsByNutritionist(
+        nutritionistId,
+      );
 
       int pendingConsultations = consultations
           .where((c) => c.status == 'Scheduled')
           .length;
-      
+
       int completedConsultations = consultations
           .where((c) => c.status == 'Completed')
           .length;
@@ -152,7 +194,7 @@ class NutritionistProvider {
 
       return {
         'totalClients': clients.length, // REAL client count
-        'activePlans': plans.length,    // REAL plan count
+        'activePlans': plans.length, // REAL plan count
         'pendingConsultations': pendingConsultations,
         'monthlyRevenue': estimatedRevenue, // Dynamic revenue
       };

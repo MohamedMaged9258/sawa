@@ -1,7 +1,3 @@
-// lib/presentation/screens/gym_owner/coaches_list_screen.dart
-
-// ignore_for_file: avoid_print, use_build_context_synchronously, deprecated_member_use
-
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
@@ -65,9 +61,9 @@ class _CoachesListScreenState extends State<CoachesListScreen> {
 
   void _deleteCoach(int index) {
     final coachToDelete = _coaches[index];
-    
+
     showDialog(
-      context: context, 
+      context: context,
       builder: (dialogContext) => AlertDialog(
         title: const Text('Delete Coach'),
         content: Text('Are you sure you want to delete ${coachToDelete.name}?'),
@@ -79,7 +75,7 @@ class _CoachesListScreenState extends State<CoachesListScreen> {
           ElevatedButton(
             style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
             onPressed: () async {
-              Navigator.pop(dialogContext); 
+              Navigator.pop(dialogContext);
               try {
                 await GymProvider.deleteCoach(coachToDelete);
                 if (!mounted) return;
@@ -87,12 +83,18 @@ class _CoachesListScreenState extends State<CoachesListScreen> {
                   _coaches.removeAt(index);
                 });
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Coach deleted successfully!'), backgroundColor: Colors.blue),
+                  const SnackBar(
+                    content: Text('Coach deleted successfully!'),
+                    backgroundColor: Colors.blue,
+                  ),
                 );
               } catch (e) {
                 if (!mounted) return;
                 ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Failed to delete coach: $e'), backgroundColor: Colors.red),
+                  SnackBar(
+                    content: Text('Failed to delete coach: $e'),
+                    backgroundColor: Colors.red,
+                  ),
                 );
               }
             },
@@ -123,8 +125,15 @@ class _CoachesListScreenState extends State<CoachesListScreen> {
   }
 
   Widget _buildBody() {
-    if (_isLoading) return const Center(child: CircularProgressIndicator(color: Colors.blue));
-    if (_error != null) return Center(child: Text('Error: $_error', style: const TextStyle(color: Colors.red)));
+    if (_isLoading)
+      return const Center(child: CircularProgressIndicator(color: Colors.blue));
+    if (_error != null)
+      return Center(
+        child: Text(
+          'Error: $_error',
+          style: const TextStyle(color: Colors.red),
+        ),
+      );
 
     if (_coaches.isEmpty) {
       return Center(
@@ -133,7 +142,10 @@ class _CoachesListScreenState extends State<CoachesListScreen> {
           children: [
             Icon(Icons.person_outline, size: 80, color: Colors.blue[200]),
             const SizedBox(height: 16),
-            Text('No coaches added yet', style: TextStyle(fontSize: 18, color: Colors.grey[600])),
+            Text(
+              'No coaches added yet',
+              style: TextStyle(fontSize: 18, color: Colors.grey[600]),
+            ),
           ],
         ),
       );
@@ -167,7 +179,9 @@ class _CoachesListScreenState extends State<CoachesListScreen> {
         leading: CircleAvatar(
           radius: 30,
           backgroundColor: Colors.blue[50],
-          backgroundImage: coach.photo.isNotEmpty ? NetworkImage(coach.photo) : null,
+          backgroundImage: coach.photo.isNotEmpty
+              ? NetworkImage(coach.photo)
+              : null,
           child: coach.photo.isEmpty
               ? Icon(Icons.person, color: Colors.blue[300], size: 30)
               : null,
@@ -204,10 +218,6 @@ class _CoachesListScreenState extends State<CoachesListScreen> {
       ],
     );
   }
-
-  String _formatDate(DateTime date) {
-    return '${date.day}/${date.month}/${date.year}';
-  }
 }
 
 class AddCoachDialog extends StatefulWidget {
@@ -221,7 +231,8 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _experienceController = TextEditingController();
-  final TextEditingController _specializationController = TextEditingController();
+  final TextEditingController _specializationController =
+      TextEditingController();
 
   XFile? _selectedImage;
   bool _isAdding = false;
@@ -250,7 +261,9 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
       });
     } catch (e) {
       setState(() => _isGymListLoading = false);
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Could not load gyms: $e')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Could not load gyms: $e')));
     }
   }
 
@@ -263,7 +276,9 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
   Future<void> _submitAddCoach() async {
     if (!_formKey.currentState!.validate()) return;
     if (_selectedGymId == null) {
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Please select a gym.')));
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Please select a gym.')));
       return;
     }
     setState(() => _isAdding = true);
@@ -283,11 +298,18 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
 
       await GymProvider.addCoach(coach, _selectedImage);
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Coach added!'), backgroundColor: Colors.blue));
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Coach added!'),
+          backgroundColor: Colors.blue,
+        ),
+      );
       Navigator.pop(context, true);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error: $e'), backgroundColor: Colors.red),
+      );
     } finally {
       if (mounted) setState(() => _isAdding = false);
     }
@@ -306,14 +328,21 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
               GestureDetector(
                 onTap: _pickImage,
                 child: Container(
-                  width: 90, height: 90,
+                  width: 90,
+                  height: 90,
                   decoration: BoxDecoration(
                     color: Colors.blue[50],
                     borderRadius: BorderRadius.circular(45),
                     border: Border.all(color: Colors.blue[200]!),
                   ),
                   child: _selectedImage != null
-                      ? ClipRRect(borderRadius: BorderRadius.circular(45), child: Image.file(File(_selectedImage!.path), fit: BoxFit.cover))
+                      ? ClipRRect(
+                          borderRadius: BorderRadius.circular(45),
+                          child: Image.file(
+                            File(_selectedImage!.path),
+                            fit: BoxFit.cover,
+                          ),
+                        )
                       : Icon(Icons.add_a_photo, color: Colors.blue[800]),
                 ),
               ),
@@ -324,16 +353,31 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
                       value: _selectedGymId,
                       decoration: InputDecoration(
                         labelText: 'Assign to Gym',
-                        filled: true, fillColor: Colors.grey[50],
-                        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+                        filled: true,
+                        fillColor: Colors.grey[50],
+                        border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: BorderSide.none,
+                        ),
                       ),
-                      items: _availableGyms.map((gym) => DropdownMenuItem(value: gym.gid, child: Text(gym.name))).toList(),
+                      items: _availableGyms
+                          .map(
+                            (gym) => DropdownMenuItem(
+                              value: gym.gid,
+                              child: Text(gym.name),
+                            ),
+                          )
+                          .toList(),
                       onChanged: (val) => setState(() => _selectedGymId = val),
                     ),
               const SizedBox(height: 12),
               _buildInput(_nameController, 'Coach Name'),
               const SizedBox(height: 12),
-              _buildInput(_experienceController, 'Years Experience', isNumber: true),
+              _buildInput(
+                _experienceController,
+                'Years Experience',
+                isNumber: true,
+              ),
               const SizedBox(height: 12),
               _buildInput(_specializationController, 'Specialization'),
             ],
@@ -341,24 +385,44 @@ class _AddCoachDialogState extends State<AddCoachDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
         ElevatedButton(
           style: ElevatedButton.styleFrom(backgroundColor: Colors.blue[800]),
           onPressed: _isAdding ? null : _submitAddCoach,
-          child: _isAdding ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2)) : const Text('Add Coach', style: TextStyle(color: Colors.white)),
+          child: _isAdding
+              ? const SizedBox(
+                  width: 20,
+                  height: 20,
+                  child: CircularProgressIndicator(
+                    color: Colors.white,
+                    strokeWidth: 2,
+                  ),
+                )
+              : const Text('Add Coach', style: TextStyle(color: Colors.white)),
         ),
       ],
     );
   }
 
-  Widget _buildInput(TextEditingController ctrl, String label, {bool isNumber = false}) {
+  Widget _buildInput(
+    TextEditingController ctrl,
+    String label, {
+    bool isNumber = false,
+  }) {
     return TextFormField(
       controller: ctrl,
       keyboardType: isNumber ? TextInputType.number : TextInputType.text,
       decoration: InputDecoration(
         labelText: label,
-        filled: true, fillColor: Colors.grey[50],
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(12), borderSide: BorderSide.none),
+        filled: true,
+        fillColor: Colors.grey[50],
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide.none,
+        ),
       ),
       validator: (v) => v!.isEmpty ? 'Required' : null,
     );

@@ -28,20 +28,17 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
-      providers: [
-        ChangeNotifierProvider(create: (_) => AuthProvider()),
-      ],
+      providers: [ChangeNotifierProvider(create: (_) => AuthProvider())],
       child: MaterialApp(
         title: 'SAWA Fitness',
         debugShowCheckedModeBanner: false,
-        
+
         // --- NEW THEME (Teal & Orange) ---
         theme: ThemeData(
           useMaterial3: true,
           // Colors
           primaryColor: const Color(0xFF009688), // Teal
           scaffoldBackgroundColor: const Color(0xFFF5F5F5), // Light Grey
-          
           // Color Scheme
           colorScheme: ColorScheme.fromSeed(
             seedColor: const Color(0xFF009688),
@@ -56,9 +53,9 @@ class MyApp extends StatelessWidget {
             elevation: 0,
             centerTitle: true,
             titleTextStyle: TextStyle(
-              fontSize: 20, 
-              fontWeight: FontWeight.bold, 
-              color: Colors.white
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+              color: Colors.white,
             ),
             iconTheme: IconThemeData(color: Colors.white),
           ),
@@ -69,8 +66,13 @@ class MyApp extends StatelessWidget {
               backgroundColor: const Color(0xFF009688),
               foregroundColor: Colors.white,
               padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 15),
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-              textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+              textStyle: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.bold,
+              ),
               elevation: 2,
             ),
           ),
@@ -102,7 +104,8 @@ class MyApp extends StatelessWidget {
           '/forgot-password': (context) => const ForgotPasswordScreen(),
           '/member-home': (context) => const MemberHomeScreen(),
           '/gym-owner-home': (context) => const GymOwnerHomeScreen(),
-          '/restaurant-owner-home': (context) => const RestaurantOwnerHomeScreen(),
+          '/restaurant-owner-home': (context) =>
+              const RestaurantOwnerHomeScreen(),
           '/nutritionist-home': (context) => const NutritionistHomeScreen(),
         },
       ),
